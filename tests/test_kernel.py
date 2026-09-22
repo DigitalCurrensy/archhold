@@ -28,6 +28,8 @@ from archhold.letter import (  # noqa: E402
 )
 from archhold.score import SURVEYS, fem_run, score_eq, score_mhp, score_mtp  # noqa: E402
 from archhold.vaults import BEAM, BLAIR, GRAIL, MHP, MTP  # noqa: E402
+from archhold.hoek import gsi_params, hoek_is_keep, lithostatic_mpa, probe as hoek_probe, ucs_mass_mpa  # noqa: E402
+from archhold.thermal import burial_delta_k, probe as thermal_probe, surface_delta_k  # noqa: E402
 from archhold.walk import (  # noqa: E402
     FEM,
     MTP_WALK,
@@ -252,6 +254,28 @@ class Wave4Tests(unittest.TestCase):
         unnamed = compile_counsel("unnamed-sign")
         self.assertFalse(unnamed["issued"])
         self.assertEqual(unnamed["why"], "unnamed_signature")
+
+
+class ClosedFormTests(unittest.TestCase):
+    def test_hoek_gsi_envelope_is_not_a_keep(self) -> None:
+        p = gsi_params(70, 17)
+        self.assertAlmostEqual(p["mb"], 5.822821, places=5)
+        self.assertAlmostEqual(ucs_mass_mpa(), 18.8024, places=3)
+        self.assertAlmostEqual(lithostatic_mpa(135), 0.67797, places=4)
+        probe = hoek_probe()
+        self.assertFalse(probe["abaqus"])
+        self.assertFalse(probe["is_keep"])
+        self.assertFalse(hoek_is_keep())
+
+    def test_diviner_burial_damps_to_zero(self) -> None:
+        self.assertEqual(surface_delta_k(), 297)
+        self.assertGreater(burial_delta_k(2.0, 0.75), 19)
+        self.assertLess(burial_delta_k(2.0, 0.75), 22)
+        self.assertEqual(burial_delta_k(135.0, 0.75), 0.0)
+        probe = thermal_probe()
+        self.assertFalse(probe["fetched"])
+        self.assertFalse(probe["is_roof"])
+        self.assertEqual(probe["polar_delta_k"], 152)
 
 
 if __name__ == "__main__":
