@@ -8,4 +8,6 @@ An arch is the roof over a walk. A tube is the walk beyond the mouth. A bag is a
 
 W0 freezes the catalog. W1 ports arch.py. Catalog scores ok / missing. ok is not a keep. Blair 2017 FEM and Hörz elastic beam are named, not scored.
 
+W2 walks ARCH-MTP-WEST. Catalog ok is not a keep. Famous is not a door. Blair FEM stays named. Wagner 16 mare pits stay mouths, not this remaining arch.
+
 A collapsed skylight is not the remaining vault. MTP mouth still belongs to BAGHOLD. TUBE-MTP-WEST still belongs to TUBEWALK.

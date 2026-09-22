@@ -1,4 +1,4 @@
-"""ARCHHOLD kernel tests. Catalog freeze. Scorer named, not a vault verdict."""
+"""ARCHHOLD kernel tests. Catalog freeze. W1 scores catalog ok. W2 walks MTP. Not a keep."""
 
 from __future__ import annotations
 
@@ -11,7 +11,19 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from archhold.arch import hold  # noqa: E402
+from archhold.score import SURVEYS, fem_run, score_eq, score_mhp, score_mtp  # noqa: E402
 from archhold.vaults import BEAM, BLAIR, GRAIL, MHP, MTP  # noqa: E402
+from archhold.walk import (  # noqa: E402
+    FEM,
+    MTP_WALK,
+    PITS,
+    STATION,
+    lunar_offset_m,
+    score_other,
+    score_published,
+    trap_fem_run,
+    trap_pit_is_roof,
+)
 
 
 class HoldTests(unittest.TestCase):
@@ -81,6 +93,54 @@ class HoldTests(unittest.TestCase):
         self.assertEqual(GRAIL["degree"], 1200)
         self.assertEqual(GRAIL["cannot_resolve_m"], 45)
         self.assertFalse(GRAIL["fetched"])
+
+
+class Wave1Tests(unittest.TestCase):
+    def test_catalog_scores(self) -> None:
+        self.assertEqual(score_mtp(), "ok")
+        self.assertEqual(score_mhp(), "missing")
+        self.assertEqual(score_eq(), "ok")
+        self.assertFalse(fem_run())
+        self.assertEqual(SURVEYS["mare_pits"], 16)
+        self.assertFalse(SURVEYS["pit_is_roof"])
+        self.assertFalse(SURVEYS["scored"])
+
+
+class Wave2Tests(unittest.TestCase):
+    def test_published_ok_is_not_a_keep(self) -> None:
+        self.assertEqual(MTP_WALK["id"], "ARCH-MTP-WEST")
+        self.assertEqual(score_published(), "ok")
+        self.assertEqual(score_other(), "missing")
+        self.assertFalse(MTP_WALK["fem_run"])
+        self.assertFalse(MTP_WALK["pit_is_roof"])
+        self.assertEqual(round(lunar_offset_m((8.3355, 33.222), (8.336, 33.222))), 15)
+
+    def test_blair_fem_named_not_run(self) -> None:
+        self.assertEqual(FEM["name"], "Blair 2017 FEM")
+        self.assertFalse(FEM["run"])
+        self.assertFalse(FEM["vendored"])
+        self.assertFalse(FEM["is_arch_py"])
+        self.assertTrue(FEM["lithostatic_keystone"])
+        self.assertEqual(FEM["engine"], "ABAQUS")
+        self.assertEqual(FEM["gsi"], 70)
+        self.assertEqual(FEM["poisson"], 0.25)
+        self.assertEqual(FEM["span_max_m"], 5000)
+        self.assertEqual(FEM["span_max_poisson_m"], 3500)
+        self.assertFalse(trap_fem_run())
+        self.assertFalse(BEAM["is_arch"])
+        self.assertFalse(BLAIR["run"])
+
+    def test_wagner_pits_not_this_roof(self) -> None:
+        self.assertEqual(PITS["mare_pits"], 16)
+        self.assertEqual(PITS["melt_pits"], 300)
+        self.assertEqual(PITS["highland_pits"], 5)
+        self.assertFalse(PITS["pit_is_roof"])
+        self.assertFalse(PITS["this_catalog"])
+        self.assertFalse(trap_pit_is_roof())
+        self.assertEqual(STATION["stations_this_build"], 9)
+        self.assertFalse(STATION["tenth"])
+        self.assertEqual(STATION["remain_after"], 2)
+        self.assertTrue(STATION["never_certificate"])
 
 
 if __name__ == "__main__":

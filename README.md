@@ -13,8 +13,8 @@ A published conduit looks like a vault that will hold. Name the arch against spa
 ## Wave freeze
 
 - W0 catalog: Mare Tranquillitatis west Mini-RF arch (Carrer 2024 burial 135–175 m, span 45±7.5 m) and Marius Hills LRS rille (Kaku 2017; span undeclared). arch.py named, not run.
-- W1 vault scorer waits.
-- W2 one bad vault waits.
+- W1 vault scorer: arch.py ported. MTP scores ok. MHP scores missing. Blair FEM named. Wagner 16 mare pits named, not roofs. ok is not a keep.
+- W2 one bad vault: ARCH-MTP-WEST walked. Catalog ok is not a keep. Blair FEM named, not run. Wagner pits named, not roofs. Famous is not a door.
 - W3 vault letter waits.
 - W4 counsel pass waits.
 
