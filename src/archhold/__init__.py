@@ -1,6 +1,7 @@
 """ARCHHOLD — the arch is the keep. Score the roof against the span."""
 
 from .arch import hold
+from .counsel import HOEK, THERMAL, compile_counsel, thermal_delta_k, trap_hoek_run, trap_thermal_as_roof
 from .letter import CARRER, LITHOSTATIC, compile_letter, lithostatic_holds_this_vault, trap_carrer_is_roof
 from .score import SURVEYS, fem_run, score_eq, score_mhp, score_mtp
 from .vaults import BEAM, BLAIR, GRAIL, MHP, MTP
@@ -12,6 +13,7 @@ __all__ = [
     "CARRER",
     "FEM",
     "GRAIL",
+    "HOEK",
     "LITHOSTATIC",
     "MHP",
     "MTP",
@@ -19,6 +21,8 @@ __all__ = [
     "PITS",
     "STATION",
     "SURVEYS",
+    "THERMAL",
+    "compile_counsel",
     "compile_letter",
     "fem_run",
     "hold",
@@ -28,7 +32,10 @@ __all__ = [
     "score_mtp",
     "score_other",
     "score_published",
+    "thermal_delta_k",
     "trap_carrer_is_roof",
     "trap_fem_run",
+    "trap_hoek_run",
     "trap_pit_is_roof",
+    "trap_thermal_as_roof",
 ]
