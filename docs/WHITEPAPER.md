@@ -10,4 +10,6 @@ W0 freezes the catalog. W1 ports arch.py. Catalog scores ok / missing. ok is not
 
 W2 walks ARCH-MTP-WEST. Catalog ok is not a keep. Famous is not a door. Blair FEM stays named. Wagner 16 mare pits stay mouths, not this remaining arch.
 
+W3 compiles the vault letter. Fail still issues. ok still issues. ok is not a keep. Blair 2017 lithostatic (Icarus 282; plane-strain ABAQUS; keystone compression; fail surface-down) is named, not run. Carrer 2024 Mini-RF inversion (span 45±7.5 m, burial 135–175 m, look ~47°) is the parent vault, not a roof.
+
 A collapsed skylight is not the remaining vault. MTP mouth still belongs to BAGHOLD. TUBE-MTP-WEST still belongs to TUBEWALK.

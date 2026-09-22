@@ -1,5 +1,3 @@
-# Architecture
-
 `arch.py` is the vault kernel. Wave 0 names it. Wave 1 ports it. Wave 2 walks one published vault.
 
 Declared caches: SYN-ARCH-MTP and SYN-ARCH-MHP. Mini-RF, SELENE LRS, GRAIL, and ABAQUS stay unfetched.
@@ -20,6 +18,8 @@ Wagner 2022: 16 mare pits, ~300 melt pits, 5 highland pits. A pit is a collapsed
 
 GRAIL GRGM1200A is km-scale. A 45 m span cannot be a GRAIL detection. Gravity is not a roof.
 
-Carrer 2024: west conduit span ~45±7.5 m, burial 135–175 m below surface. Burial is declared overburden, not a live FEM roof.
+Carrer 2024: west conduit span ~45±7.5 m, burial 135–175 m below surface. Length 30–80 m. Slope ≤45°. Look ~47°. Burial is declared overburden, not a live FEM roof. The inversion is not a roof.
+
+W3 compiles the vault letter from locked fields. Thin, wide, weak, crack, and ok still issue. Undeclared identity does not. ok on ARCH-MTP-WEST is still do-not-enter. Counsel unsigned. Never CERTIFICATE.
 
 Kaku 2017: LRS second echo, ε=1 → 225 m, ε=4 → ~100 m. Width undeclared. Missing until a span is named. Not this walk.

@@ -8,6 +8,6 @@ W1 owns arch.py. Catalog scores ok / missing. ok is not a keep. Blair FEM named,
 
 W2 owns one bad-vault walk. ARCH-MTP-WEST only. Famous is not a keep. Blair FEM named. Wagner pits named, not roofs.
 
-W3 owns the letter. Fail still issues. ok still issues. ok is not a keep. W4 owns the counsel pass.
+W3 owns the letter. Fail still issues. ok still issues. ok is not a keep. Blair lithostatic named, not run. Carrer inversion is not a roof. W4 owns the counsel pass.
 
 URS 1–5 is human last. Unpublished NASA crew traverse data is refused even after login.

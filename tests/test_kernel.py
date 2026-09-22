@@ -11,6 +11,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from archhold.arch import hold  # noqa: E402
+from archhold.letter import (  # noqa: E402
+    CARRER,
+    LITHOSTATIC,
+    compile_letter,
+    lithostatic_holds_this_vault,
+    trap_carrer_is_roof,
+)
 from archhold.score import SURVEYS, fem_run, score_eq, score_mhp, score_mtp  # noqa: E402
 from archhold.vaults import BEAM, BLAIR, GRAIL, MHP, MTP  # noqa: E402
 from archhold.walk import (  # noqa: E402
@@ -141,6 +148,55 @@ class Wave2Tests(unittest.TestCase):
         self.assertFalse(STATION["tenth"])
         self.assertEqual(STATION["remain_after"], 2)
         self.assertTrue(STATION["never_certificate"])
+
+
+class Wave3Tests(unittest.TestCase):
+    def test_published_ok_letter_is_not_a_keep(self) -> None:
+        letter = compile_letter("walk")
+        self.assertEqual(letter["title"], "VAULT LETTER")
+        self.assertTrue(letter["issued"])
+        self.assertEqual(letter["stamp"], "ok")
+        self.assertTrue(letter["do_not_enter"])
+        self.assertTrue(letter["not_a_certificate"])
+        self.assertLessEqual(letter["words"], 80)
+        self.assertIn("ok is not a keep", letter["body"])
+
+    def test_blair_lithostatic_named_not_run(self) -> None:
+        letter = compile_letter("fem")
+        self.assertTrue(letter["issued"])
+        self.assertEqual(letter["why"], "fem_named_not_scored")
+        self.assertFalse(letter["fem_run"])
+        self.assertEqual(LITHOSTATIC["engine"], "ABAQUS")
+        self.assertEqual(LITHOSTATIC["gsi"], 70)
+        self.assertEqual(LITHOSTATIC["poisson"], 0.25)
+        self.assertTrue(LITHOSTATIC["lithostatic_keystone"])
+        self.assertTrue(LITHOSTATIC["fail_surface_down"])
+        self.assertEqual(LITHOSTATIC["span_max_m"], 5000)
+        self.assertEqual(LITHOSTATIC["span_max_poisson_m"], 3500)
+        self.assertFalse(LITHOSTATIC["run"])
+        self.assertFalse(LITHOSTATIC["vendored"])
+        self.assertTrue(lithostatic_holds_this_vault())
+
+    def test_carrer_inversion_is_not_a_roof(self) -> None:
+        letter = compile_letter("carrer")
+        self.assertTrue(letter["issued"])
+        self.assertEqual(letter["why"], "carrer_named_not_roof")
+        self.assertFalse(letter["carrer_is_roof"])
+        self.assertFalse(letter["inversion_run"])
+        self.assertEqual(CARRER["span_m"], 45.0)
+        self.assertEqual(CARRER["span_unc_m"], 7.5)
+        self.assertEqual(CARRER["burial_lo_m"], 135.0)
+        self.assertEqual(CARRER["burial_hi_m"], 175.0)
+        self.assertEqual(CARRER["lat"], 8.3355)
+        self.assertEqual(CARRER["lon"], 33.222)
+        self.assertEqual(CARRER["west_of_mouth_m"], 40)
+        self.assertEqual(CARRER["bounce_need"], 3)
+        self.assertFalse(CARRER["fetched"])
+        self.assertFalse(trap_carrer_is_roof())
+        mhp = compile_letter("mhp")
+        self.assertFalse(mhp["issued"])
+        self.assertEqual(mhp["why"], "not_this_letter")
+        self.assertFalse(mhp["mhp_is_this_letter"])
 
 
 if __name__ == "__main__":

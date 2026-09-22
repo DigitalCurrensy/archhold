@@ -6,8 +6,8 @@ W1: vault scorer. `arch.py` ported. Missing first. Catalog scores ok / missing. 
 
 W2: one bad vault demonstration. ARCH-MTP-WEST walked. Catalog ok is not a keep. Blair FEM named, not run. Wagner pits named, not roofs. Famous is not a door.
 
-W3: vault letter. Fail still issues. ok still issues. ok is not a keep. Counsel unsigned. Not a certificate.
+W3: vault letter. Fail still issues. ok still issues. ok is not a keep. Blair lithostatic named, not run. Carrer inversion is not a roof. Counsel unsigned. Not a certificate.
 
 W4: counsel pass. Compiled from locked fields. Counsel unsigned.
 
-Stop. Vault letter waits. Do not staff a tenth station.
+Stop. Counsel pass waits. Do not staff a tenth station.

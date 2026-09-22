@@ -6,4 +6,4 @@ Geospatial station: roof stats, CRS honesty. Metre-scale span vs km-scale gravit
 
 Integration station: do-not-enter abort. W3 owns the letter. ok is not a keep.
 
-Roles, not hired celebrities. ARCHHOLD W2 staffed. One vault walked. Famous is not a keep. Letter waits.
+Roles, not hired celebrities. ARCHHOLD W3 staffed. Vault letter compiled. ok is not a keep. Counsel unsigned.
