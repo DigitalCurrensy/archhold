@@ -12,4 +12,6 @@ W2 walks ARCH-MTP-WEST. Catalog ok is not a keep. Famous is not a door. Blair FE
 
 W3 compiles the vault letter. Fail still issues. ok still issues. ok is not a keep. Blair 2017 lithostatic (Icarus 282; plane-strain ABAQUS; keystone compression; fail surface-down) is named, not run. Carrer 2024 Mini-RF inversion (span 45±7.5 m, burial 135–175 m, look ~47°) is the parent vault, not a roof.
 
+W4 compiles the counsel pass. Unsigned. Hoek-Brown GSI 70 named, not run. Lunar ΔT ~300 K is not a roof. Kapton is MLI, not overburden. Names are not wet ink. Station freeze.
+
 A collapsed skylight is not the remaining vault. MTP mouth still belongs to BAGHOLD. TUBE-MTP-WEST still belongs to TUBEWALK.

@@ -11,6 +11,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from archhold.arch import hold  # noqa: E402
+from archhold.counsel import (  # noqa: E402
+    HOEK,
+    THERMAL,
+    compile_counsel,
+    thermal_delta_k,
+    trap_hoek_run,
+    trap_thermal_as_roof,
+)
 from archhold.letter import (  # noqa: E402
     CARRER,
     LITHOSTATIC,
@@ -197,6 +205,53 @@ class Wave3Tests(unittest.TestCase):
         self.assertFalse(mhp["issued"])
         self.assertEqual(mhp["why"], "not_this_letter")
         self.assertFalse(mhp["mhp_is_this_letter"])
+
+
+class Wave4Tests(unittest.TestCase):
+    def test_compiled_unsigned_is_not_a_certificate(self) -> None:
+        paper = compile_counsel("compiled")
+        self.assertEqual(paper["title"], "VAULT COUNSEL PASS")
+        self.assertTrue(paper["issued"])
+        self.assertEqual(paper["stamp"], "unsigned")
+        self.assertFalse(paper["signed"])
+        self.assertFalse(paper["wet_ink"])
+        self.assertTrue(paper["not_a_certificate"])
+        self.assertTrue(paper["do_not_enter"])
+        self.assertLessEqual(paper["words"], 80)
+        self.assertIn("ok is not a keep", paper["body"])
+
+    def test_hoek_named_not_run(self) -> None:
+        paper = compile_counsel("hoek")
+        self.assertFalse(paper["issued"])
+        self.assertEqual(paper["why"], "hoek_named_not_scored")
+        self.assertFalse(paper["hoek_run"])
+        self.assertEqual(HOEK["gsi"], 70)
+        self.assertEqual(HOEK["ucs_mpa"], 100)
+        self.assertEqual(HOEK["engine"], "ABAQUS")
+        self.assertFalse(HOEK["run"])
+        self.assertFalse(HOEK["vendored"])
+        self.assertFalse(HOEK["is_arch_py"])
+        self.assertFalse(trap_hoek_run())
+        self.assertFalse(BEAM["is_arch"])
+        self.assertFalse(BLAIR["run"])
+
+    def test_thermal_is_not_a_roof(self) -> None:
+        paper = compile_counsel("thermal")
+        self.assertFalse(paper["issued"])
+        self.assertEqual(paper["why"], "thermal_is_not_a_roof")
+        self.assertFalse(paper["thermal_is_roof"])
+        self.assertFalse(paper["kapton_is_roof"])
+        self.assertEqual(THERMAL["t_day_k"], 390)
+        self.assertEqual(THERMAL["t_night_k"], 90)
+        self.assertEqual(thermal_delta_k(), 300)
+        self.assertEqual(THERMAL["gevs"], "GSFC-STD-7000")
+        self.assertFalse(THERMAL["gevs_is_roof"])
+        self.assertFalse(THERMAL["kapton_is_roof"])
+        self.assertTrue(THERMAL["kapton_is_mli"])
+        self.assertFalse(trap_thermal_as_roof())
+        unnamed = compile_counsel("unnamed-sign")
+        self.assertFalse(unnamed["issued"])
+        self.assertEqual(unnamed["why"], "unnamed_signature")
 
 
 if __name__ == "__main__":
