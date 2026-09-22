@@ -22,6 +22,6 @@ Carrer 2024: west conduit span ~45±7.5 m, burial 135–175 m below surface. Len
 
 W3 compiles the vault letter from locked fields. Thin, wide, weak, crack, and ok still issue. Undeclared identity does not. ok on ARCH-MTP-WEST is still do-not-enter. Counsel unsigned. Never CERTIFICATE.
 
-W4 compiles the counsel pass from locked fields. Unsigned. Hoek-Brown GSI 70 named, not run. Lunar equatorial ΔT ~300 K is not a roof. GSFC-STD-7000 GEVS is a hardware standard. Kapton HN is MLI, not overburden. Names are not wet ink. Station freeze. No tenth.
+W4 compiles the counsel pass from locked fields. Unsigned. Hoek-Brown GSI 70 closed-form envelope computed. ABAQUS still dark. Diviner Williams 2017 noon 387–397 K / dawn 95 K. 135 m burial damps ΔT to 0. GSFC-STD-7000 GEVS is a hardware standard. Kapton HN is MLI, not overburden. A yield envelope is not a keep. Names are not wet ink. Station freeze. No tenth.
 
 Kaku 2017: LRS second echo, ε=1 → 225 m, ε=4 → ~100 m. Width undeclared. Missing until a span is named. Not this walk.
