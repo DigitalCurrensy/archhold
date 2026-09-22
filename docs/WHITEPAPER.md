@@ -1,0 +1,11 @@
+# ARCHHOLD
+
+A published conduit looks like a vault that will hold. ARCHHOLD names the arch.
+
+Two published arches: Mare Tranquillitatis west Mini-RF span (Carrer et al. 2024 Nature Astronomy, 45±7.5 m, burial 135–175 m) and Marius Hills LRS rille (Kaku et al. 2017 GRL; span undeclared, ε-depth 100–225 m). Dual parents named. arch.py named, not run.
+
+An arch is the roof over a walk. A tube is the walk beyond the mouth. A bag is a goal you enter. A beam is not an arch. GRAIL mass deficit is not a roof thickness.
+
+W0 freezes the catalog. W1 ports arch.py. Catalog scores ok / missing. ok is not a keep. Blair 2017 FEM and Hörz elastic beam are named, not scored.
+
+A collapsed skylight is not the remaining vault. MTP mouth still belongs to BAGHOLD. TUBE-MTP-WEST still belongs to TUBEWALK.

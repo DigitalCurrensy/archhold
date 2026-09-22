@@ -1,2 +1,49 @@
-# archhold
-ARCHHOLD — the arch is the keep. Score the roof against the span. A walk is not a ceiling. A beam is not an arch.
+# ARCHHOLD
+
+The arch is the keep. A radar walk looks like a roof you can trust. Score the span against the overburden.
+
+**Owner:** Digital Currensy Inc.
+**Status:** Private. Independent tool. Not a NASA Space Apps 2026 submission.
+**License of our code:** Apache-2.0
+
+## One sentence
+
+A published conduit looks like a vault that will hold. Name the arch against span and roof — or say the vault is not a keep.
+
+## Wave freeze
+
+- W0 catalog: Mare Tranquillitatis west Mini-RF arch (Carrer 2024 burial 135–175 m, span 45±7.5 m) and Marius Hills LRS rille (Kaku 2017; span undeclared). arch.py named, not run.
+- W1 vault scorer waits.
+- W2 one bad vault waits.
+- W3 vault letter waits.
+- W4 counsel pass waits.
+
+## arch.py
+
+```
+if span_m is None or roof_m is None: missing
+elif roof_m < 2: thin
+elif span_m > 5000: wide
+elif tensile_mpa is not None and tensile_mpa < 1: weak
+elif crack: crack
+else: ok
+```
+
+Missing first. Equality sits. FEM unrun. ok is not a keep.
+
+## What it is not
+
+- Not TUBEWALK. A walk is not a ceiling.
+- Not BAGHOLD mouth. A collapsed skylight is not the remaining arch.
+- Not Blair 2017 FEM run. ABAQUS stays upstream.
+- Not an elastic beam. Hörz ~385 m at 65 m roof is not an arch.
+- Not GRAIL km-scale as this 45 m vault.
+- Not tensile as this score. Theinat named. arch.py skips None.
+- Not FEASFRONT lighting. A dark roof is not a keep.
+- Not DOSEPATH occupancy. Shelter is a graph box, not this span.
+
+## Run
+
+```
+PYTHONPATH=src python -m unittest tests.test_kernel
+```
