@@ -16,7 +16,7 @@ A published conduit looks like a vault that will hold. Name the arch against spa
 - W1 vault scorer: arch.py ported. MTP scores ok. MHP scores missing. Blair FEM named. Wagner 16 mare pits named, not roofs. ok is not a keep.
 - W2 one bad vault: ARCH-MTP-WEST walked. Catalog ok is not a keep. Blair FEM named, not run. Wagner pits named, not roofs. Famous is not a door.
 - W3 vault letter: compiled from locked fields. Fail still issues. ok still issues. ok is not a keep. Blair lithostatic named. Carrer inversion is not a roof. Counsel unsigned.
-- W4 counsel pass: compiled from locked fields. Unsigned. Hoek-Brown GSI 70 named, not run. Lunar thermal cycling is not a roof. Kapton is MLI, not overburden. Station freeze.
+- W4 counsel pass: compiled from locked fields. Unsigned. Hoek-Brown GSI 70 closed-form envelope computed. ABAQUS still dark. Diviner Williams 2017 noon 387–397 K / dawn 95 K. 135 m burial damps ΔT to 0. Kapton is MLI, not overburden. A yield envelope is not a keep. Station freeze.
 
 ## arch.py
 
