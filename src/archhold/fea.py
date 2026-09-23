@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Plane-stress triangles, then the Hoek-Brown envelope. Not ABAQUS. Not a plastic return map."""
+"""Plane-stress triangles, one Hoek-Brown correction. Not ABAQUS. Not UDEC."""
 
 from __future__ import annotations
 
@@ -119,6 +119,53 @@ def triangle_stress(
     return tuple(_matvec(_matmul(plane_stress_d(young_mpa, poisson), strain), displacement))  # type: ignore[return-value]
 
 
+def nodal_force(corners: list[tuple[float, float]], stress: tuple[float, float, float]) -> list[float]:
+    """f = 1 m × area × Bᵀ × stress. The same B the stiffness uses. Forces are MN."""
+    area, strain = triangle_geometry(corners)
+    raw = _matvec(_transpose(strain), [stress[0], stress[1], stress[2]])
+    weight = THICKNESS_M * area
+    return [weight * value for value in raw]
+
+
+def corrected_stress(
+    sxx: float,
+    syy: float,
+    txy: float,
+    trial_sigma1: float,
+    returned_sigma1: float,
+    returned_sigma3: float,
+    mode: str,
+) -> tuple[float, float, float]:
+    """Plane-stress tensor used for the one equilibrium correction.
+
+    Tension is positive. An elastic element keeps the trial tensor. An apex
+    return contributes zero stress for this correction only. Otherwise the
+    in-plane deviator is scaled so the principals match the returned pair and
+    the hydrostatic part is the mean of that pair, in the same principal
+    frame. If the trial deviator radius is zero, the frame is ambiguous and
+    the trial-major scale rule is used: the elastic stress is multiplied by
+    returned_sigma1 / trial_sigma1 when trial_sigma1 is nonzero.
+    """
+    if mode == "elastic":
+        return sxx, syy, txy
+    if mode == "apex":
+        return 0.0, 0.0, 0.0
+    average = 0.5 * (sxx + syy)
+    radius = math.hypot(0.5 * (sxx - syy), txy)
+    if radius > 0.0:
+        mean = -0.5 * (returned_sigma1 + returned_sigma3)
+        scaled = 0.5 * (returned_sigma1 - returned_sigma3) / radius
+        return (
+            mean + scaled * (sxx - average),
+            mean + scaled * (syy - average),
+            scaled * txy,
+        )
+    if trial_sigma1 != 0.0:
+        factor = returned_sigma1 / trial_sigma1
+        return factor * sxx, factor * syy, factor * txy
+    return sxx, syy, txy
+
+
 def principals_compression(sxx: float, syy: float, txy: float) -> tuple[float, float]:
     """Return sigma1, sigma3 with compression positive and sigma1 >= sigma3."""
     average = 0.5 * (sxx + syy)
@@ -173,16 +220,18 @@ def _triangles(nx: int, nz: int) -> list[tuple[int, int, int]]:
 
 
 def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> dict[str, float | int | str]:
-    """Elastic roof strip, then the Hoek-Brown check on each triangle.
+    """Elastic roof strip, one Hoek-Brown equilibrium correction. Not a keep.
 
     y = 0 is the opening. y = roof is the extrados. Side nodes cannot move
     vertically. The lower-left node cannot move horizontally. The top edge
     carries lithostatic pressure downward. Every triangle also carries its
     own weight, 3100 * 1.62. Thickness out of plane is 1 m. Young's modulus
     is 30 GPa and Poisson's ratio is 0.25, the pair already used for the
-    thermal stress. More than 64 nodes is refused. Principals outside the
-    envelope are cut back onto it locally. The mesh is not solved again.
-    This does not call a named solver.
+    thermal stress. More than 64 nodes is refused. The elastic solve stays.
+    Returned principals rebuild the element stress. Apex elements use zero
+    stress for that correction only. K du = unbalanced is one extra solve
+    with the same elastic stiffness. It is not an associated flow rule, not
+    ABAQUS, and not UDEC.
     """
     _finite(span_m)
     _finite(roof_m)
@@ -228,16 +277,36 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
     for dof, value in zip(free, solved):
         displacement[dof] = value
     internal = _matvec(stiffness, displacement)
-    residual = 0.0
     reaction_y = 0.0
     applied_y = 0.0
     for dof in range(1, dofs, 2):
         applied_y += force[dof]
-        imbalance = internal[dof] - force[dof]
         if dof in fixed:
-            reaction_y += imbalance
-        else:
-            residual = max(residual, abs(imbalance))
+            reaction_y += internal[dof] - force[dof]
+    returned_force = [0.0 for _ in range(dofs)]
+    for face in faces:
+        corners = [nodes[index] for index in face]
+        local_u = []
+        for index in face:
+            local_u.extend(displacement[2 * index : 2 * index + 2])
+        sxx, syy, txy = triangle_stress(corners, local_u)
+        major, minor = principals_compression(sxx, syy, txy)
+        returned1, returned3, mode = return_principals(major, minor)
+        stress = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
+        local_force = nodal_force(corners, stress)
+        for local_i, node in enumerate(face):
+            returned_force[2 * node] += local_force[2 * local_i]
+            returned_force[2 * node + 1] += local_force[2 * local_i + 1]
+    unbalanced = [force[dof] - returned_force[dof] for dof in range(dofs)]
+    for dof in fixed:
+        unbalanced[dof] = 0.0
+    residual = 0.0
+    for dof in free:
+        residual = max(residual, abs(unbalanced[dof]))
+    solved_step = _solve(reduced, [unbalanced[dof] for dof in free])
+    for dof, value in zip(free, solved_step):
+        displacement[dof] += value
+    updated_force = [0.0 for _ in range(dofs)]
     sigma1 = -math.inf
     sigma3 = math.inf
     over = 0
@@ -251,6 +320,13 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
             local_u.extend(displacement[2 * index : 2 * index + 2])
         sxx, syy, txy = triangle_stress(corners, local_u)
         major, minor = principals_compression(sxx, syy, txy)
+        returned1, returned3, mode = return_principals(major, minor)
+        stress = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
+        local_force = nodal_force(corners, stress)
+        for local_i, node in enumerate(face):
+            updated_force[2 * node] += local_force[2 * local_i]
+            updated_force[2 * node + 1] += local_force[2 * local_i + 1]
+        major, minor = principals_compression(sxx, syy, txy)
         sigma1 = max(sigma1, major)
         sigma3 = min(sigma3, minor)
         hit = envelope_hit(major, minor)
@@ -263,6 +339,9 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         over += 1
         if fail == "none" or hit == "tension":
             fail = hit
+    residual_after = 0.0
+    for dof in free:
+        residual_after = max(residual_after, abs(force[dof] - updated_force[dof]))
     shape = hold(span_m, roof_m, None, False, None)
     if shape == "ok":
         word = "hoek" if over else "ok"
@@ -284,21 +363,28 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         "reaction": reaction_y,
         "applied": applied_y,
         "residual": residual,
+        "residual_after": residual_after,
+        "iterations": 1,
         "young": E_MPA,
         "poisson": POISSON,
     }
 
 
+def _residual_text(residual: float | int | str) -> str:
+    if isinstance(residual, float) and residual < 1e-9:
+        return "0"
+    return f"{residual:.10g}"
+
+
 def fea_line(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> str:
     scored = score_fea(span_m, roof_m, depth_m, nx, nz)
-    residual = scored["residual"]
-    residual_text = "0" if isinstance(residual, float) and residual < 1e-9 else f"{residual:.10g}"
     return (
         f"{scored['word']} elements={scored['elements']} nodes={scored['nodes']} "
         f"over={scored['over']} plastic={scored['plastic']} fail={scored['fail']} "
         f"max_sig1={scored['max_sig1']:.10g} back_sig1={scored['back_sig1']:.10g} min_sig3={scored['min_sig3']:.10g} "
         f"ucs={scored['ucs']:.10g} cutoff={scored['cutoff']:.10g} "
         f"pressure={scored['pressure']:.10g} reaction={scored['reaction']:.10g} "
-        f"applied={scored['applied']:.10g} residual={residual_text} "
+        f"applied={scored['applied']:.10g} residual={_residual_text(scored['residual'])} "
+        f"residual_after={_residual_text(scored['residual_after'])} iterations={scored['iterations']} "
         f"e={scored['young']:.10g} nu={scored['poisson']:.10g}"
     )

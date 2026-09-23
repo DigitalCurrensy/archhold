@@ -8,7 +8,7 @@ The caller supplies the span and the roof numbers: span, thickness, tensile stre
 
 ## What it decides
 
-Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles, then cuts principals that leave the Hoek-Brown envelope back onto that surface. The mesh is not solved again. It is not ABAQUS and it is not UDEC.
+Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles, cuts principals that leave the Hoek-Brown envelope back onto that surface, then solves that same elastic stiffness once more. The returned stress is not the last word. That is one equilibrium correction. It is not ABAQUS and it is not UDEC.
 
 ## The order inside hold()
 
@@ -45,14 +45,14 @@ The three deep nodes are the bottom row. They share sides, so they are one compo
 
 `fea.py` is the mesh whose edges carry load. Each rectangle splits into two constant-strain triangles. `K = 1 m × area × Bᵀ × D × B`. `D` is plane stress with Young's modulus `30 GPa` and Poisson's ratio `0.25`. A unit horizontal strain on the triangle `(0,0), (2,0), (0,2)` returns stress `(32000, 8000, 0)` MPa. Tension is positive inside the element. The envelope uses compression as positive.
 
-The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. After the displacements, each triangle's principals are checked with `envelope_hit`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any triangle is outside the envelope, else `ok`. The vertical reactions balance the applied load of the elastic trial. A residual under `1e-9` prints as `0`. `plastic` counts triangles whose trial principals were outside the envelope. `back_sig1` is the largest major principal after the local return: the minor principal is moved only when it passes the tensile cutoff, and then both principals sit on the apex `(-cutoff, -cutoff)`; otherwise the major principal is lowered to the envelope and the mesh is not solved again. That return is not an associated flow rule. UDEC is Itasca's distinct-element program: rigid or deformable blocks and contacts, not these triangles. This file does not call it. Nothing here is a global plastic rebalance, and no named solver is called.
+The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. The first solve is elastic. `return_principals` then cuts each triangle. The stress used for the correction keeps that trial's principal frame: the deviator is scaled so the principals match the returned pair, and the hydrostatic part is the mean of that pair, tension positive. If the trial deviator radius is zero, the frame is ambiguous and the trial-major scale rule is used. The returned stress used for the correction is the elastic stress scaled by `returned_sigma1 / trial_sigma1` when `trial_sigma1` is nonzero, and unchanged when the element was elastic. Elements that returned to the apex use a zero stress for the correction only. Internal force is `1 m × area × Bᵀ × stress`, with the same `B` as `K`. Unbalanced force is the applied load minus those internal forces. Fixed degrees of freedom stay 0. One solve, `K du = unbalanced`, is added to the displacement. `iterations=1` means that single correction. It does not mean the plastic return converged, and it does not mean the updated elastic stress is in equilibrium. `max_sig1` and `min_sig3` are principals of the elastic stress recomputed from the updated displacement. The envelope check and the local return run on that new stress and set the word, `plastic`, and `back_sig1`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any new triangle is outside the envelope, else `ok`. Ok is not a structural keep. The vertical reactions still balance the applied load of the elastic trial. `residual` is the max absolute unbalanced force of the returned stress before the correction, on free degrees of freedom. `residual_after` is that imbalance again after one correction, using the returned stress of the updated displacement. On the worked roof it falls from 15.11887723 to 14.80792609. It does not fall to zero. A residual under `1e-9` prints as `0`. If every element was elastic, `du` is zero and both residuals print `0`. The local return is not an associated flow rule. UDEC is Itasca's distinct-element program: rigid or deformable blocks and contacts, not these triangles. This file does not call it. One correction is not a global plastic rebalance, and no named solver is called.
 
 ```bash
 PYTHONPATH=src python -m archhold fea 45 10 135 3 3
 ```
 
 ```text
-hoek elements=8 nodes=9 over=5 plastic=5 fail=tension max_sig1=2.182985179 back_sig1=0.7980966099 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25
+hoek elements=8 nodes=9 over=5 plastic=5 fail=tension max_sig1=4.423603797 back_sig1=1.391894428 min_sig3=-3.779564515 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=15.11887723 residual_after=14.80792609 iterations=1 e=30000 nu=0.25
 ```
 
 A beam formula is not an arch survey.
@@ -65,7 +65,7 @@ A beam formula is not an arch survey.
 
 - Run ABAQUS.
 - Call UDEC. That is Itasca's distinct-element program. This repository is continuum triangles, not blocks and contacts.
-- Solve the mesh again after the local plastic return.
+- Treat `iterations=1` as a converged plastic analysis. It is one equilibrium correction with the original elastic stiffness, not a global rebalance.
 - Treat ok as a structural keep.
 
 ## Run

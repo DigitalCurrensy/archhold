@@ -449,8 +449,8 @@ class FeaTests(unittest.TestCase):
         self.assertEqual(scored["word"], "hoek")
         self.assertEqual(scored["fail"], "tension")
         self.assertEqual(scored["elements"], 8)
+        self.assertEqual(scored["iterations"], 1)
         self.assertLess(abs(scored["reaction"] + scored["applied"]), 1e-9)
-        self.assertLess(scored["residual"], 1e-9)
         self.assertEqual(score_fea(45.0, 1.0, 135.0, 3, 3)["word"], "thin")
 
     def test_command_line(self) -> None:
@@ -468,10 +468,30 @@ class FeaTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(
             proc.stdout.strip(),
-            "hoek elements=8 nodes=9 over=5 plastic=5 fail=tension max_sig1=2.182985179 "
-            "back_sig1=0.7980966099 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 "
-            "pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25",
+            "hoek elements=8 nodes=9 over=5 plastic=5 fail=tension max_sig1=4.423603797 "
+            "back_sig1=1.391894428 min_sig3=-3.779564515 ucs=18.80243413 cutoff=0.6126583006 "
+            "pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=15.11887723 "
+            "residual_after=14.80792609 iterations=1 e=30000 nu=0.25",
         )
+
+    def test_one_correction_is_hand_checkable(self) -> None:
+        from archhold.fea import corrected_stress, nodal_force, score_fea, triangle_stress
+
+        stress = triangle_stress([(0.0, 0.0), (2.0, 0.0), (0.0, 2.0)], [0.0, 0.0, 2.0, 0.0, 0.0, 0.0])
+        self.assertEqual(stress, (32000.0, 8000.0, 0.0))
+        self.assertEqual(
+            nodal_force([(0.0, 0.0), (2.0, 0.0), (0.0, 2.0)], (32000.0, 8000.0, 0.0)),
+            [-32000.0, -8000.0, 32000.0, 0.0, 0.0, 8000.0],
+        )
+        self.assertEqual(corrected_stress(-2.0, -1.0, 0.0, 2.0, 1.5, 1.0, "envelope"), (-1.5, -1.0, 0.0))
+        self.assertEqual(corrected_stress(-2.0, -1.0, 0.4, 2.0, 2.0, 1.0, "elastic"), (-2.0, -1.0, 0.4))
+        self.assertEqual(corrected_stress(-2.0, -1.0, 0.5, 3.0, -0.6, -0.6, "apex"), (0.0, 0.0, 0.0))
+        self.assertEqual(corrected_stress(-5.0, -5.0, 0.0, 5.0, 4.0, 5.0, "envelope"), (-4.0, -4.0, 0.0))
+        inside = score_fea(5.0, 10.0, 0.0, 3, 3)
+        self.assertEqual(inside["plastic"], 0)
+        self.assertEqual(inside["iterations"], 1)
+        self.assertLess(inside["residual"], 1e-9)
+        self.assertLess(inside["residual_after"], 1e-9)
 
 
 if __name__ == "__main__":
