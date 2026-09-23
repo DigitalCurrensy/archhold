@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 import csv
+import math
 import sys
 from pathlib import Path
 
 from .arch import hold
+from .hoek import lithostatic_mpa, ucs_mass_mpa
 
 COLUMNS = ("span_m", "roof_m", "tensile_mpa", "crack")
 
@@ -49,6 +51,15 @@ def _bool(text: str) -> bool:
     raise ValueError(f"not a boolean: {text}")
 
 
+
+def _show(value: float | None) -> str:
+    if value is None:
+        return "missing"
+    if not math.isfinite(value):
+        return "bad"
+    return f"{value:.10g}"
+
+
 def score_row(row: dict[str, str | None]) -> str:
     return hold(
         _optional_float(_cell(row, "span_m")),
@@ -67,16 +78,31 @@ def main(argv: list[str] | None = None) -> int:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         names = [name.strip() for name in (reader.fieldnames or [])]
-        if names != list(COLUMNS):
+        allowed = {tuple(COLUMNS), tuple(COLUMNS) + ("depth_m",)}
+        if tuple(names) not in allowed:
             print(
                 "csv columns must be span_m,roof_m,tensile_mpa,crack",
                 file=sys.stderr,
             )
             return 2
+        strength = f"{ucs_mass_mpa():.10g}"
         for row in reader:
             if all(not (value or "").strip() for value in row.values()):
                 continue
-            print(score_row(row))
+            span = _optional_float(_cell(row, "span_m"))
+            roof = _optional_float(_cell(row, "roof_m"))
+            tensile = _optional_float(_cell(row, "tensile_mpa"))
+            crack = _bool(_cell(row, "crack"))
+            depth = _optional_float(_cell(row, "depth_m")) if "depth_m" in names else None
+            word = hold(span, roof, tensile, crack, depth)
+            if depth is None:
+                lith = "unset"
+            else:
+                lith = _show(lithostatic_mpa(depth)) if depth >= 0 else "bad"
+            print(
+                f"{word} span={_show(span)} roof={_show(roof)} tensile={_show(tensile)} "
+                f"crack={'true' if crack else 'false'} ucs={strength} lithostatic={lith}"
+            )
     return 0
 
 

@@ -335,5 +335,25 @@ class FiniteRoofTests(unittest.TestCase):
         self.assertEqual(hold(100.0, float("nan"), 5.0, False), "missing")
 
 
+
+class PrintedLineTests(unittest.TestCase):
+    def test_ucs_is_on_the_line(self) -> None:
+        import subprocess
+        repo = Path(__file__).resolve().parents[1]
+        proc = subprocess.run(
+            [sys.executable, "-m", "archhold", str(repo / "examples" / "roof.csv")],
+            cwd=repo, env={**__import__("os").environ, "PYTHONPATH": str(repo / "src")},
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(
+            proc.stdout.splitlines()[0],
+            "ok span=45 roof=135 tensile=missing crack=false ucs=18.80243413 lithostatic=unset",
+        )
+
+    def test_depth_above_strength_is_load(self) -> None:
+        self.assertEqual(hold(45.0, 135.0, None, False, 4000.0), "load")
+
+
 if __name__ == "__main__":
     unittest.main()
