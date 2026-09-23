@@ -53,6 +53,33 @@ def ucs_mass_mpa(gsi: float = GSI, mi: float = MI_CONSERVATIVE) -> float:
     return sigma1_mpa(0.0, gsi, mi)
 
 
+def tensile_cutoff_mpa(gsi: float = GSI, mi: float = MI_CONSERVATIVE) -> float:
+    """Uniaxial tensile strength, as a positive number.
+
+    s * intact strength / mb. Compression is not this number.
+    """
+    p = gsi_params(gsi, mi)
+    return p["s"] * p["sci_mpa"] / p["mb"]
+
+
+def envelope_hit(sigma1: float, sigma3: float, gsi: float = GSI, mi: float = MI_CONSERVATIVE) -> str:
+    """Hoek-Brown check. Compression is positive. sigma1 is the larger compression.
+
+    A negative sigma3 is tension of size -sigma3. That fails when the size
+    exceeds the tensile cutoff. Otherwise it fails when sigma1 is above the
+    envelope at that sigma3. A bad number raises ValueError.
+    """
+    if not math.isfinite(sigma1) or not math.isfinite(sigma3) or sigma1 < sigma3:
+        raise ValueError("bad stress")
+    if sigma3 < 0.0:
+        if -sigma3 > tensile_cutoff_mpa(gsi, mi):
+            return "tension"
+        sigma3 = 0.0
+    if sigma1 > sigma1_mpa(sigma3, gsi, mi):
+        return "envelope"
+    return "inside"
+
+
 def hoek_is_keep() -> bool:
     return False
 

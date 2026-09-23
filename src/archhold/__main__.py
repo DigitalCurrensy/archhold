@@ -24,6 +24,7 @@ from pathlib import Path
 from .arch import hold
 from .hoek import lithostatic_mpa, ucs_mass_mpa
 from .mesh import mesh_line
+from .fea import fea_line
 
 COLUMNS = ("span_m", "roof_m", "tensile_mpa", "crack")
 
@@ -82,6 +83,20 @@ def main(argv: list[str] | None = None) -> int:
             if str(nx) != args[4] or str(nz) != args[5]:
                 raise ValueError("not a mesh")
             print(mesh_line(span, roof, depth, nx, nz))
+        except ValueError:
+            print("not a mesh", file=sys.stderr)
+            return 2
+        return 0
+    if args and args[0] == "fea":
+        if len(args) != 6:
+            print("usage: python -m archhold fea SPAN ROOF DEPTH NX NZ", file=sys.stderr)
+            return 2
+        try:
+            span, roof, depth = (float(args[1]), float(args[2]), float(args[3]))
+            nx, nz = int(args[4]), int(args[5])
+            if str(nx) != args[4] or str(nz) != args[5]:
+                raise ValueError("not a mesh")
+            print(fea_line(span, roof, depth, nx, nz))
         except ValueError:
             print("not a mesh", file=sys.stderr)
             return 2

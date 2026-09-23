@@ -8,7 +8,7 @@ The caller supplies the span and the roof numbers: span, thickness, tensile stre
 
 ## What it decides
 
-Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that same number on a grid. No finite-element model is run.
+Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles and then checks the Hoek-Brown envelope. It is not ABAQUS and it is not a plastic analysis.
 
 ## The order inside hold()
 
@@ -20,16 +20,16 @@ Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a 
 4. **wide** — `span_m > 5000`.
 5. **weak** — `tensile_mpa` is present and `tensile_mpa < 1`.
 6. **crack** — `crack` is true.
-7. **load** — `depth_m` is present and `depth_m >= 0`, and lithostatic stress at that depth is greater than the Hoek-Brown unconfined mass strength. The comparison is density 3100 and gravity 1.62 against the Hoek-Brown unconfined mass strength already in `hoek.py`. One depth is one node. The mesh command places that comparison on a grid. No finite-element model is run.
+7. **load** — `depth_m` is present and `depth_m >= 0`, and lithostatic stress at that depth is greater than the Hoek-Brown unconfined mass strength. The comparison is density 3100 and gravity 1.62 against the Hoek-Brown unconfined mass strength already in `hoek.py`. One depth is one node. The mesh command places that comparison on a grid whose edges do not carry load.
 8. **ok** — none of the above.
 
-The line prints span, roof, tensile, crack, the Hoek-Brown unconfined strength `ucs`, and lithostatic stress. lithostatic is unset when depth was not supplied. A blank required number is missing. A non-finite number is missing. It takes the same branch `hold()` already uses for `None`. A missing span or a missing thickness is `missing`, not ok. A blank tensile cell is not a weak roof; the weak check runs only when a number is present. A negative tensile is missing, not weak. Every existing four-argument call leaves depth unset. Ok is not a structural keep and no finite-element model is run.
+The line prints span, roof, tensile, crack, the Hoek-Brown unconfined strength `ucs`, and lithostatic stress. lithostatic is unset when depth was not supplied. A blank required number is missing. A non-finite number is missing. It takes the same branch `hold()` already uses for `None`. A missing span or a missing thickness is `missing`, not ok. A blank tensile cell is not a weak roof; the weak check runs only when a number is present. A negative tensile is missing, not weak. Every existing four-argument call leaves depth unset. Ok is not a structural keep.
 
 ## Closed forms, not a mesh
 
 `thermal.py` is a closed form, not a mesh. Surface swing is noon mid `392` K minus dawn `95` K. Burial damping is that swing times `exp(-depth / skin)`. Skin is `0.07` m in regolith and `0.75` m in rock. A non-positive skin, or a ratio under `1e-12`, returns `0`. Constrained stress in MPa is `(30 GPa × 1000 × 6e-6 × delta) / (1 − 0.25)`. The same file states noon `387`–`397` K, equator mean `215.5` K, equator max `392.3` K, equator min `94.3` K, polar max `202` K, polar min `50` K, and a counsel delta of `300` K. That temperature is not a roof.
 
-`hoek.py` is a closed-form Hoek–Brown envelope. Constants in the file: GSI `70`, disturbance `0`, mi `17` (conservative), `20` (Blair), and `25` (basalt), intact strength `100` MPa, density `3100`, lunar gravity `1.62`, burial `135` m, thin-roof mark `2` m. `mb = mi × exp((GSI − 100) / (28 − 14D))`, `s = exp((GSI − 100) / (9 − 3D))`, `a = 0.5 + (1/6) × (exp(−GSI/15) − exp(−20/3))`. Major principal stress is `sigma3 + 100 × (mb × sigma3 / 100 + s) ^ a` when the inside term is positive, otherwise `sigma3`. Lithostatic stress in MPa is `3100 × 1.62 × depth / 1e6`. `hoek_is_keep` stays false. ABAQUS is not run.
+`hoek.py` is a closed-form Hoek–Brown envelope. Constants in the file: GSI `70`, disturbance `0`, mi `17` (conservative), `20` (Blair), and `25` (basalt), intact strength `100` MPa, density `3100`, lunar gravity `1.62`, burial `135` m, thin-roof mark `2` m. `mb = mi × exp((GSI − 100) / (28 − 14D))`, `s = exp((GSI − 100) / (9 − 3D))`, `a = 0.5 + (1/6) × (exp(−GSI/15) − exp(−20/3))`. Major principal stress is `sigma3 + 100 × (mb × sigma3 / 100 + s) ^ a` when the inside term is positive, otherwise `sigma3`. Lithostatic stress in MPa is `3100 × 1.62 × depth / 1e6`. The tensile cutoff is `s × 100 / mb`, a positive number. Compression is positive. If the smaller principal is tension beyond that cutoff, the hit is `tension`. A smaller tension gets no confinement credit and is checked against the envelope at zero confinement. A point above the envelope is `envelope`. `hoek_is_keep` stays false. ABAQUS is not run.
 
 `mesh.py` places that same lithostatic stress on a rectangular grid. `x` runs from 0 to the span. Depth runs from 0 to the depth you pass. `nx` and `nz` are node counts, each at least 2. A 4-neighbor edge means two nodes share a side. The edge does not carry stress, and there is no stiffness matrix. A node is over strength when its own `3100 × 1.62 × depth / 1e6` is greater than the Hoek–Brown unconfined mass strength. `components` counts how many connected groups those over-strength nodes form. The shape word still wins when the roof is thin, wide, weak, cracked, or missing.
 
@@ -42,6 +42,18 @@ load nodes=9 edges=12 over=3 components=1 max=20.088 ucs=18.80243413 span=45 roo
 ```
 
 The three deep nodes are the bottom row. They share sides, so they are one component. A node count under 2, a negative span or depth, or a non-finite number is `not a mesh`.
+
+`fea.py` is the mesh whose edges carry load. Each rectangle splits into two constant-strain triangles. `K = 1 m × area × Bᵀ × D × B`. `D` is plane stress with Young's modulus `30 GPa` and Poisson's ratio `0.25`. A unit horizontal strain on the triangle `(0,0), (2,0), (0,2)` returns stress `(32000, 8000, 0)` MPa. Tension is positive inside the element. The envelope uses compression as positive.
+
+The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. After the displacements, each triangle's principals are checked with `envelope_hit`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any triangle is outside the envelope, else `ok`. The vertical reactions balance the applied load. Nothing here is a plastic return map, and no named solver is called.
+
+```bash
+PYTHONPATH=src python -m archhold fea 45 10 135 3 3
+```
+
+```text
+hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=3.830269435e-14 e=30000 nu=0.25
+```
 
 A beam formula is not an arch survey.
 

@@ -410,5 +410,55 @@ class MeshTests(unittest.TestCase):
         )
 
 
+class FeaTests(unittest.TestCase):
+    def test_patch_is_the_plane_stress_strain(self) -> None:
+        from archhold.fea import triangle_stress
+
+        stress = triangle_stress([(0.0, 0.0), (2.0, 0.0), (0.0, 2.0)], [0.0, 0.0, 2.0, 0.0, 0.0, 0.0])
+        self.assertEqual(stress, (32000.0, 8000.0, 0.0))
+
+    def test_envelope_names_the_miss(self) -> None:
+        from archhold.hoek import envelope_hit, tensile_cutoff_mpa, ucs_mass_mpa
+
+        strength = ucs_mass_mpa()
+        cutoff = tensile_cutoff_mpa()
+        self.assertEqual(envelope_hit(strength - 0.01, 0.0), "inside")
+        self.assertEqual(envelope_hit(strength + 0.01, 0.0), "envelope")
+        self.assertEqual(envelope_hit(1.0, -(cutoff + 0.01)), "tension")
+        with self.assertRaises(ValueError):
+            envelope_hit(0.0, 1.0)
+
+    def test_reactions_balance_the_load(self) -> None:
+        from archhold.fea import score_fea
+
+        scored = score_fea(45.0, 10.0, 135.0, 3, 3)
+        self.assertEqual(scored["word"], "hoek")
+        self.assertEqual(scored["fail"], "tension")
+        self.assertEqual(scored["elements"], 8)
+        self.assertLess(abs(scored["reaction"] + scored["applied"]), 1e-9)
+        self.assertLess(scored["residual"], 1e-9)
+        self.assertEqual(score_fea(45.0, 1.0, 135.0, 3, 3)["word"], "thin")
+
+    def test_command_line(self) -> None:
+        import subprocess
+
+        repo = Path(__file__).resolve().parents[1]
+        proc = subprocess.run(
+            [sys.executable, "-m", "archhold", "fea", "45", "10", "135", "3", "3"],
+            cwd=repo,
+            env={**__import__("os").environ, "PYTHONPATH": str(repo / "src")},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(
+            proc.stdout.strip(),
+            "hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 "
+            "min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 "
+            "reaction=32.76855 applied=-32.76855 residual=3.830269435e-14 e=30000 nu=0.25",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
