@@ -17,8 +17,15 @@ def hold(
     roof_m: float | None,
     tensile_mpa: float | None,
     crack: bool,
+    depth_m: float | None = None,
 ) -> str:
     if span_m is None or roof_m is None:
+        return "missing"
+    if span_m < 0 or roof_m < 0:
+        return "missing"
+    if tensile_mpa is not None and tensile_mpa < 0:
+        return "missing"
+    if depth_m is not None and depth_m < 0:
         return "missing"
     if roof_m < 2:
         return "thin"
@@ -28,4 +35,9 @@ def hold(
         return "weak"
     if crack:
         return "crack"
+    if depth_m is not None and depth_m >= 0:
+        from archhold.hoek import lithostatic_mpa, ucs_mass_mpa
+
+        if lithostatic_mpa(depth_m) > ucs_mass_mpa():
+            return "load"
     return "ok"

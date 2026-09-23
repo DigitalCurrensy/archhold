@@ -71,6 +71,20 @@ class HoldTests(unittest.TestCase):
         self.assertEqual(hold(45, 135, None, True), "crack")
         self.assertEqual(hold(45, 135, None, False), "ok")
 
+    def test_negative_span_or_tensile_is_missing_and_depth_load_is_closed_form(self) -> None:
+        self.assertEqual(hold(-1, 135, None, False), "missing")
+        self.assertEqual(hold(45, 135, -1, False), "missing")
+        self.assertNotEqual(hold(45, 135, -1, False), "weak")
+        stress_per_m = lithostatic_mpa(1.0)
+        self.assertGreater(stress_per_m, 0.0)
+        depth_m = ucs_mass_mpa() / stress_per_m + 1.0
+        self.assertGreater(lithostatic_mpa(depth_m), ucs_mass_mpa())
+        self.assertEqual(hold(45, 135, None, False, depth_m), "load")
+        self.assertEqual(hold(45, 135, None, False, 0), "ok")
+        self.assertNotEqual(hold(45, 135, None, False, 0), "load")
+        self.assertFalse(hoek_is_keep())
+        self.assertFalse(fem_run())
+
     def test_named_catalog_is_not_a_fetched_survey(self) -> None:
         self.assertEqual(MTP["id"], "ARCH-MTP-WEST")
         self.assertEqual(MTP["lat"], 8.3355)

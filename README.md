@@ -8,20 +8,22 @@ The caller supplies the span and the roof numbers: span, thickness, tensile stre
 
 ## What it decides
 
-Thin, wide, weak, crack, missing, or ok. Passing the shape check is not a keep. Ok is not a structural keep and no finite-element model is run.
+Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep and no finite-element model is run. A load result is the closed-form comparison, not a mesh and not a keep.
 
 ## The order inside hold()
 
-`hold(span_m, roof_m, tensile_mpa, crack)` returns the first hit, in this order:
+`hold(span_m, roof_m, tensile_mpa, crack, depth_m=None)` returns the first hit, in this order:
 
 1. **missing** — `span_m` is missing or `roof_m` is missing.
-2. **thin** — `roof_m < 2`.
-3. **wide** — `span_m > 5000`.
-4. **weak** — `tensile_mpa` is present and `tensile_mpa < 1`.
-5. **crack** — `crack` is true.
-6. **ok** — none of the above.
+2. **missing** — `span_m` is negative or `roof_m` is negative. A present `tensile_mpa` under 0 is missing, not weak. A present `depth_m` under 0 is missing.
+3. **thin** — `roof_m < 2`.
+4. **wide** — `span_m > 5000`.
+5. **weak** — `tensile_mpa` is present and `tensile_mpa < 1`.
+6. **crack** — `crack` is true.
+7. **load** — `depth_m` is present and `depth_m >= 0`, and lithostatic stress at that depth is greater than the Hoek-Brown unconfined mass strength. The comparison is density 3100 and gravity 1.62 against the Hoek-Brown unconfined mass strength already in `hoek.py`. That comparison is not a mesh. No finite-element model is run.
+8. **ok** — none of the above.
 
-A blank required number is missing. It takes the same branch `hold()` already uses for `None`. A missing span or a missing thickness is `missing`, not ok. A blank tensile cell is not a weak roof; the weak check runs only when a number is present. Ok is not a structural keep and no finite-element model is run.
+A blank required number is missing. It takes the same branch `hold()` already uses for `None`. A missing span or a missing thickness is `missing`, not ok. A blank tensile cell is not a weak roof; the weak check runs only when a number is present. A negative tensile is missing, not weak. Every existing four-argument call leaves depth unset. Ok is not a structural keep and no finite-element model is run.
 
 ## Closed forms, not a mesh
 
