@@ -355,5 +355,60 @@ class PrintedLineTests(unittest.TestCase):
         self.assertEqual(hold(45.0, 135.0, None, False, 4000.0), "load")
 
 
+class MeshTests(unittest.TestCase):
+    def test_three_by_three_deep_row_is_one_component(self) -> None:
+        from archhold.mesh import rectangular_mesh, score_mesh
+
+        nodes, edges = rectangular_mesh(45.0, 4000.0, 3, 3)
+        self.assertEqual(len(nodes), 9)
+        self.assertEqual(len(edges), 12)
+        self.assertEqual(nodes[0], (0.0, 0.0))
+        self.assertEqual(nodes[-1], (45.0, 4000.0))
+        scored = score_mesh(45.0, 135.0, 4000.0, 3, 3)
+        self.assertEqual(scored["word"], "load")
+        self.assertEqual(scored["over"], 3)
+        self.assertEqual(scored["components"], 1)
+        self.assertEqual(f"{scored['max']:.10g}", "20.088")
+
+    def test_shallow_grid_is_ok(self) -> None:
+        from archhold.mesh import score_mesh
+
+        scored = score_mesh(45.0, 135.0, 135.0, 3, 3)
+        self.assertEqual(scored["word"], "ok")
+        self.assertEqual(scored["over"], 0)
+        self.assertEqual(scored["components"], 0)
+
+    def test_thin_roof_keeps_the_shape_word(self) -> None:
+        from archhold.mesh import score_mesh
+
+        scored = score_mesh(45.0, 1.0, 4000.0, 3, 3)
+        self.assertEqual(scored["word"], "thin")
+        self.assertEqual(scored["over"], 3)
+
+    def test_one_node_is_not_a_mesh(self) -> None:
+        from archhold.mesh import rectangular_mesh
+
+        with self.assertRaises(ValueError):
+            rectangular_mesh(45.0, 10.0, 1, 3)
+
+    def test_command_line(self) -> None:
+        import subprocess
+
+        repo = Path(__file__).resolve().parents[1]
+        proc = subprocess.run(
+            [sys.executable, "-m", "archhold", "mesh", "45", "135", "4000", "3", "3"],
+            cwd=repo,
+            env={**__import__("os").environ, "PYTHONPATH": str(repo / "src")},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(
+            proc.stdout.strip(),
+            "load nodes=9 edges=12 over=3 components=1 max=20.088 ucs=18.80243413 span=45 roof=135 depth=4000",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
