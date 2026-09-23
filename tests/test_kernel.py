@@ -292,5 +292,28 @@ class ClosedFormTests(unittest.TestCase):
         self.assertEqual(probe["polar_delta_k"], 152)
 
 
+class CsvMissingTests(unittest.TestCase):
+    def test_blank_required_number_is_missing_not_ok(self) -> None:
+        from archhold.__main__ import score_row
+
+        blank_span = score_row(
+            {"span_m": "", "roof_m": "135", "tensile_mpa": "", "crack": "false"}
+        )
+        blank_roof = score_row(
+            {"span_m": "45", "roof_m": "", "tensile_mpa": "", "crack": "false"}
+        )
+        blank_tensile = score_row(
+            {"span_m": "45", "roof_m": "135", "tensile_mpa": "", "crack": "false"}
+        )
+        self.assertEqual(blank_span, hold(None, 135.0, None, False))
+        self.assertEqual(blank_roof, hold(45.0, None, None, False))
+        self.assertEqual(blank_tensile, hold(45.0, 135.0, None, False))
+        self.assertEqual(blank_span, "missing")
+        self.assertEqual(blank_roof, "missing")
+        self.assertNotEqual(blank_span, "ok")
+        self.assertNotEqual(blank_roof, "ok")
+        self.assertEqual(blank_tensile, "ok")
+
+
 if __name__ == "__main__":
     unittest.main()

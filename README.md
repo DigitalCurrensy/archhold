@@ -1,34 +1,52 @@
 # ARCHHOLD
 
-For a reviewer deciding whether a lava-tube roof will hold a span.
+The caller supplies the span and the roof numbers: span, thickness, tensile strength, and a declared crack.
 
 **Owner:** Digital Currensy Inc.
 **Copyright:** 2026 Digital Currensy Inc.
-**License:** Apache-2.0. The file named LICENSE is the standard license and is not edited. The copyright notice is in NOTICE and at the top of each source file. Cited data and papers stay with their authors.
+**License:** Apache-2.0. The file named LICENSE is the unmodified Apache text. The copyright notice is in NOTICE and at the top of each source file.
+
 ## What it decides
 
-Thin, wide, weak, crack, missing, or ok. Ok means the shape check passed. It does not mean the roof will hold.
+Thin, wide, weak, crack, missing, or ok. Passing the shape check is not a keep. Ok is not a structural keep and no finite-element model is run.
 
-## The rule
+## The order inside hold()
 
-Missing span or thickness is missing. A roof under the thickness gate is thin. A span over the width gate is wide. A declared strength under the gate is weak. A declared crack is a crack. Otherwise ok, and ok is not a keep. A closed-form envelope is not a mesh. No finite-element model is run.
+`hold(span_m, roof_m, tensile_mpa, crack)` returns the first hit, in this order:
 
-## Worked cases
+1. **missing** — `span_m` is missing or `roof_m` is missing.
+2. **thin** — `roof_m < 2`.
+3. **wide** — `span_m > 5000`.
+4. **weak** — `tensile_mpa` is present and `tensile_mpa < 1`.
+5. **crack** — `crack` is true.
+6. **ok** — none of the above.
 
-The Mare Tranquillitatis west arch and the Marius Hills rille arch are named. The synthetic arches each force one gate. They are not a vault a customer asked to keep.
+A blank required number is missing. It takes the same branch `hold()` already uses for `None`. A missing span or a missing thickness is `missing`, not ok. A blank tensile cell is not a weak roof; the weak check runs only when a number is present. Ok is not a structural keep and no finite-element model is run.
+
+## Closed forms, not a mesh
+
+`thermal.py` is a closed form, not a mesh. Surface swing is noon mid `392` K minus dawn `95` K. Burial damping is that swing times `exp(-depth / skin)`. Skin is `0.07` m in regolith and `0.75` m in rock. A non-positive skin, or a ratio under `1e-12`, returns `0`. Constrained stress in MPa is `(30 GPa × 1000 × 6e-6 × delta) / (1 − 0.25)`. The same file states noon `387`–`397` K, equator mean `215.5` K, equator max `392.3` K, equator min `94.3` K, polar max `202` K, polar min `50` K, and a counsel delta of `300` K. That temperature is not a roof.
+
+`hoek.py` is a closed-form Hoek–Brown envelope, not a mesh. Constants in the file: GSI `70`, disturbance `0`, mi `17` (conservative), `20` (Blair), and `25` (basalt), intact strength `100` MPa, density `3100`, lunar gravity `1.62`, burial `135` m, thin-roof mark `2` m. `mb = mi × exp((GSI − 100) / (28 − 14D))`, `s = exp((GSI − 100) / (9 − 3D))`, `a = 0.5 + (1/6) × (exp(−GSI/15) − exp(−20/3))`. Major principal stress is `sigma3 + 100 × (mb × sigma3 / 100 + s) ^ a` when the inside term is positive, otherwise `sigma3`. Lithostatic stress in MPa is `3100 × 1.62 × depth / 1e6`. `hoek_is_keep` stays false. ABAQUS is not run.
+
+A beam formula is not an arch survey.
+
+## Worked rows
+
+`examples/roof.csv` uses the four `hold()` inputs and nothing else. Worked rows are not a vault a customer asked to keep.
 
 ## What it will not do
 
-- Call a radar walk a roof.
-- Run ABAQUS, or treat a yield envelope as a keep.
-- Sign a structural letter.
+- Run ABAQUS.
+- Run a finite-element model.
+- Treat a beam formula as an arch survey.
+- Treat ok as a structural keep.
 
 ## Run
 
 ```
-git clone <this repo>
-cd archhold
 PYTHONPATH=src python -m unittest tests.test_kernel
+PYTHONPATH=src python -m archhold examples/roof.csv
 ```
 
-Python 3.12. No third-party packages. The test is the demo.
+Copyright 2026 Digital Currensy Inc. Apache-2.0.

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "archhold"
+version = "0.1.0"
+description = "Score a roof span against thickness. Ok is not a structural keep."
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Digital Currensy Inc." }]
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
