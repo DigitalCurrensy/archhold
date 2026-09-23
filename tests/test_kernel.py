@@ -456,7 +456,7 @@ class FeaTests(unittest.TestCase):
             proc.stdout.strip(),
             "hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 "
             "min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 "
-            "reaction=32.76855 applied=-32.76855 residual=3.830269435e-14 e=30000 nu=0.25",
+            "reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25",
         )
 
 

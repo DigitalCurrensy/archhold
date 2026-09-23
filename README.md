@@ -45,14 +45,14 @@ The three deep nodes are the bottom row. They share sides, so they are one compo
 
 `fea.py` is the mesh whose edges carry load. Each rectangle splits into two constant-strain triangles. `K = 1 m × area × Bᵀ × D × B`. `D` is plane stress with Young's modulus `30 GPa` and Poisson's ratio `0.25`. A unit horizontal strain on the triangle `(0,0), (2,0), (0,2)` returns stress `(32000, 8000, 0)` MPa. Tension is positive inside the element. The envelope uses compression as positive.
 
-The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. After the displacements, each triangle's principals are checked with `envelope_hit`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any triangle is outside the envelope, else `ok`. The vertical reactions balance the applied load. Nothing here is a plastic return map, and no named solver is called.
+The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. After the displacements, each triangle's principals are checked with `envelope_hit`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any triangle is outside the envelope, else `ok`. The vertical reactions balance the applied load. A residual under `1e-9` prints as `0`. Nothing here is a plastic return map, and no named solver is called.
 
 ```bash
 PYTHONPATH=src python -m archhold fea 45 10 135 3 3
 ```
 
 ```text
-hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=3.830269435e-14 e=30000 nu=0.25
+hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25
 ```
 
 A beam formula is not an arch survey.

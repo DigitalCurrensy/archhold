@@ -281,12 +281,14 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
 
 def fea_line(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> str:
     scored = score_fea(span_m, roof_m, depth_m, nx, nz)
+    residual = scored["residual"]
+    residual_text = "0" if isinstance(residual, float) and residual < 1e-9 else f"{residual:.10g}"
     return (
         f"{scored['word']} elements={scored['elements']} nodes={scored['nodes']} "
         f"over={scored['over']} fail={scored['fail']} "
         f"max_sig1={scored['max_sig1']:.10g} min_sig3={scored['min_sig3']:.10g} "
         f"ucs={scored['ucs']:.10g} cutoff={scored['cutoff']:.10g} "
         f"pressure={scored['pressure']:.10g} reaction={scored['reaction']:.10g} "
-        f"applied={scored['applied']:.10g} residual={scored['residual']:.10g} "
+        f"applied={scored['applied']:.10g} residual={residual_text} "
         f"e={scored['young']:.10g} nu={scored['poisson']:.10g}"
     )
