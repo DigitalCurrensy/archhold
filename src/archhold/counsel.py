@@ -6,7 +6,7 @@ from .letter import compile_letter
 from .vaults import BEAM, BLAIR
 
 TITLE = "VAULT COUNSEL PASS"
-OFFER = "roof letter $6k–$14k. Not an invoice."
+OFFER = "Unsigned. Not an invoice."
 COUNSEL = "unsigned"
 WORD_CAP = 80
 
@@ -154,7 +154,7 @@ def compile_counsel(kind: str) -> dict:
     body = (
         "VAULT COUNSEL PASS. Research tool. Not a certificate. Not survey-grade. "
         "ARCH-MTP-WEST still OK. ok is not a keep. Counsel unsigned. "
-        "Engineer of record unsigned. Offer $6k–$14k."
+        "Engineer of record unsigned."
     )
     return {
         **base,

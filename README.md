@@ -4,8 +4,6 @@ For a reviewer deciding whether a lava-tube roof will hold a span.
 
 **Owner:** Digital Currensy Inc.
 **License:** Apache-2.0. Our code only. Cited data and papers stay with their authors.
-**Status:** Private until the owner publishes it.
-
 ## What it decides
 
 Thin, wide, weak, crack, missing, or ok. Ok means the shape check passed. It does not mean the roof will hold.

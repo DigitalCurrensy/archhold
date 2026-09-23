@@ -1,4 +1,4 @@
-"""ARCHHOLD kernel tests. Catalog freeze. W1 scores catalog ok. W2 walks MTP. Not a keep."""
+"""ARCHHOLD kernel tests. Ok is not a keep."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class HoldTests(unittest.TestCase):
         self.assertEqual(hold(45, 135, None, True), "crack")
         self.assertEqual(hold(45, 135, None, False), "ok")
 
-    def test_catalog_named_not_scored_as_wave0_verdict(self) -> None:
+    def test_named_catalog_is_not_a_fetched_survey(self) -> None:
         self.assertEqual(MTP["id"], "ARCH-MTP-WEST")
         self.assertEqual(MTP["lat"], 8.3355)
         self.assertEqual(MTP["lon"], 33.222)

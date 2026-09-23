@@ -7,7 +7,7 @@ from .vaults import MTP
 from .walk import MTP_WALK
 
 TITLE = "VAULT LETTER"
-OFFER = "roof letter $6k–$14k. Not an invoice."
+OFFER = "Unsigned. Not an invoice."
 COUNSEL = "unsigned"
 WORD_CAP = 80
 
