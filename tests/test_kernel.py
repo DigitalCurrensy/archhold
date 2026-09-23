@@ -329,5 +329,11 @@ class CsvMissingTests(unittest.TestCase):
         self.assertEqual(blank_tensile, "ok")
 
 
+
+class FiniteRoofTests(unittest.TestCase):
+    def test_non_finite_is_missing(self) -> None:
+        self.assertEqual(hold(100.0, float("nan"), 5.0, False), "missing")
+
+
 if __name__ == "__main__":
     unittest.main()

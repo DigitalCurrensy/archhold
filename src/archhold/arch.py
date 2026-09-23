@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
+
+def _bad(value: float | None) -> bool:
+    return value is not None and not math.isfinite(value)
+
+
 def hold(
     span_m: float | None,
     roof_m: float | None,
@@ -20,6 +27,8 @@ def hold(
     depth_m: float | None = None,
 ) -> str:
     if span_m is None or roof_m is None:
+        return "missing"
+    if _bad(span_m) or _bad(roof_m) or _bad(tensile_mpa) or _bad(depth_m):
         return "missing"
     if span_m < 0 or roof_m < 0:
         return "missing"
