@@ -428,6 +428,20 @@ class FeaTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             envelope_hit(0.0, 1.0)
 
+    def test_return_sits_on_the_surface(self) -> None:
+        from archhold.hoek import envelope_hit, return_principals, tensile_cutoff_mpa, ucs_mass_mpa
+
+        strength = ucs_mass_mpa()
+        cutoff = tensile_cutoff_mpa()
+        self.assertEqual(return_principals(1.0, 0.0), (1.0, 0.0, "elastic"))
+        major, minor, mode = return_principals(strength + 5.0, 0.0)
+        self.assertEqual(mode, "envelope")
+        self.assertEqual(major, strength)
+        self.assertEqual(minor, 0.0)
+        self.assertEqual(return_principals(100.0, -10.0), (-cutoff, -cutoff, "apex"))
+        self.assertEqual(envelope_hit(-cutoff, -cutoff), "inside")
+        self.assertEqual(envelope_hit(major, minor), "inside")
+
     def test_reactions_balance_the_load(self) -> None:
         from archhold.fea import score_fea
 
@@ -454,9 +468,9 @@ class FeaTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(
             proc.stdout.strip(),
-            "hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 "
-            "min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 "
-            "reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25",
+            "hoek elements=8 nodes=9 over=5 plastic=5 fail=tension max_sig1=2.182985179 "
+            "back_sig1=0.7980966099 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 "
+            "pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25",
         )
 
 

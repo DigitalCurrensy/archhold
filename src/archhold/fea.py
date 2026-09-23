@@ -24,6 +24,7 @@ from archhold.hoek import (
     RHO,
     envelope_hit,
     lithostatic_mpa,
+    return_principals,
     tensile_cutoff_mpa,
     ucs_mass_mpa,
 )
@@ -179,8 +180,9 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
     carries lithostatic pressure downward. Every triangle also carries its
     own weight, 3100 * 1.62. Thickness out of plane is 1 m. Young's modulus
     is 30 GPa and Poisson's ratio is 0.25, the pair already used for the
-    thermal stress. More than 64 nodes is refused. This is not a plastic
-    analysis and it does not call a named solver.
+    thermal stress. More than 64 nodes is refused. Principals outside the
+    envelope are cut back onto it locally. The mesh is not solved again.
+    This does not call a named solver.
     """
     _finite(span_m)
     _finite(roof_m)
@@ -239,7 +241,9 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
     sigma1 = -math.inf
     sigma3 = math.inf
     over = 0
+    plastic = 0
     fail = "none"
+    back = -math.inf
     for face in faces:
         corners = [nodes[index] for index in face]
         local_u = []
@@ -250,6 +254,10 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         sigma1 = max(sigma1, major)
         sigma3 = min(sigma3, minor)
         hit = envelope_hit(major, minor)
+        returned1, _returned3, mode = return_principals(major, minor)
+        back = max(back, returned1)
+        if mode != "elastic":
+            plastic += 1
         if hit == "inside":
             continue
         over += 1
@@ -265,7 +273,9 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         "elements": len(faces),
         "nodes": len(nodes),
         "over": over,
+        "plastic": plastic,
         "fail": fail,
+        "back_sig1": back,
         "max_sig1": sigma1,
         "min_sig3": sigma3,
         "ucs": ucs_mass_mpa(),
@@ -285,8 +295,8 @@ def fea_line(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> 
     residual_text = "0" if isinstance(residual, float) and residual < 1e-9 else f"{residual:.10g}"
     return (
         f"{scored['word']} elements={scored['elements']} nodes={scored['nodes']} "
-        f"over={scored['over']} fail={scored['fail']} "
-        f"max_sig1={scored['max_sig1']:.10g} min_sig3={scored['min_sig3']:.10g} "
+        f"over={scored['over']} plastic={scored['plastic']} fail={scored['fail']} "
+        f"max_sig1={scored['max_sig1']:.10g} back_sig1={scored['back_sig1']:.10g} min_sig3={scored['min_sig3']:.10g} "
         f"ucs={scored['ucs']:.10g} cutoff={scored['cutoff']:.10g} "
         f"pressure={scored['pressure']:.10g} reaction={scored['reaction']:.10g} "
         f"applied={scored['applied']:.10g} residual={residual_text} "

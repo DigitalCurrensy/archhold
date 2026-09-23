@@ -8,7 +8,7 @@ The caller supplies the span and the roof numbers: span, thickness, tensile stre
 
 ## What it decides
 
-Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles and then checks the Hoek-Brown envelope. It is not ABAQUS and it is not a plastic analysis.
+Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles, then cuts principals that leave the Hoek-Brown envelope back onto that surface. The mesh is not solved again. It is not ABAQUS and it is not UDEC.
 
 ## The order inside hold()
 
@@ -45,14 +45,14 @@ The three deep nodes are the bottom row. They share sides, so they are one compo
 
 `fea.py` is the mesh whose edges carry load. Each rectangle splits into two constant-strain triangles. `K = 1 m × area × Bᵀ × D × B`. `D` is plane stress with Young's modulus `30 GPa` and Poisson's ratio `0.25`. A unit horizontal strain on the triangle `(0,0), (2,0), (0,2)` returns stress `(32000, 8000, 0)` MPa. Tension is positive inside the element. The envelope uses compression as positive.
 
-The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. After the displacements, each triangle's principals are checked with `envelope_hit`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any triangle is outside the envelope, else `ok`. The vertical reactions balance the applied load. A residual under `1e-9` prints as `0`. Nothing here is a plastic return map, and no named solver is called.
+The strip runs from `y = 0` at the opening to `y = roof` at the extrados. Side nodes cannot move vertically. The lower-left node cannot move horizontally. The top edge is loaded with the lithostatic pressure `3100 × 1.62 × depth / 1e6`, downward. Each triangle also carries self-weight `3100 × 1.62`, split across its three nodes. Forces are meganewtons when stress is MPa and lengths are meters. The dense solve stops above 64 nodes. After the displacements, each triangle's principals are checked with `envelope_hit`. A thin, wide, weak, cracked, or missing roof keeps that shape word. Otherwise the word is `hoek` when any triangle is outside the envelope, else `ok`. The vertical reactions balance the applied load of the elastic trial. A residual under `1e-9` prints as `0`. `plastic` counts triangles whose trial principals were outside the envelope. `back_sig1` is the largest major principal after the local return: the minor principal is moved only when it passes the tensile cutoff, and then both principals sit on the apex `(-cutoff, -cutoff)`; otherwise the major principal is lowered to the envelope and the mesh is not solved again. That return is not an associated flow rule. UDEC is Itasca's distinct-element program: rigid or deformable blocks and contacts, not these triangles. This file does not call it. Nothing here is a global plastic rebalance, and no named solver is called.
 
 ```bash
 PYTHONPATH=src python -m archhold fea 45 10 135 3 3
 ```
 
 ```text
-hoek elements=8 nodes=9 over=5 fail=tension max_sig1=2.182985179 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25
+hoek elements=8 nodes=9 over=5 plastic=5 fail=tension max_sig1=2.182985179 back_sig1=0.7980966099 min_sig3=-1.85561629 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=0 e=30000 nu=0.25
 ```
 
 A beam formula is not an arch survey.

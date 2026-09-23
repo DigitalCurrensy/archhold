@@ -66,8 +66,9 @@ def envelope_hit(sigma1: float, sigma3: float, gsi: float = GSI, mi: float = MI_
     """Hoek-Brown check. Compression is positive. sigma1 is the larger compression.
 
     A negative sigma3 is tension of size -sigma3. That fails when the size
-    exceeds the tensile cutoff. Otherwise it fails when sigma1 is above the
-    envelope at that sigma3. A bad number raises ValueError.
+    exceeds the tensile cutoff. A smaller tension gets no confinement credit:
+    the major principal is compared with the envelope at zero confinement.
+    A bad number raises ValueError.
     """
     if not math.isfinite(sigma1) or not math.isfinite(sigma3) or sigma1 < sigma3:
         raise ValueError("bad stress")
@@ -78,6 +79,30 @@ def envelope_hit(sigma1: float, sigma3: float, gsi: float = GSI, mi: float = MI_
     if sigma1 > sigma1_mpa(sigma3, gsi, mi):
         return "envelope"
     return "inside"
+
+
+def return_principals(
+    sigma1: float, sigma3: float, gsi: float = GSI, mi: float = MI_CONSERVATIVE
+) -> tuple[float, float, str]:
+    """Cut trial principals onto the same surface envelope_hit uses.
+
+    Compression is positive and sigma1 >= sigma3. If the minor principal is
+    more tensile than the cutoff, both principals move to the apex
+    (-cutoff, -cutoff), where the Hoek-Brown inside term is zero. Otherwise
+    the minor principal stays, and the major principal is lowered to the
+    unconfined strength when the minor principal is tensile, or to the
+    envelope at that confinement when it is not. Confinement is not moved
+    except at the apex. This is not an associated flow rule, it does not
+    rebalance a mesh, and it is not UDEC.
+    """
+    if envelope_hit(sigma1, sigma3, gsi, mi) == "inside":
+        return sigma1, sigma3, "elastic"
+    cutoff = tensile_cutoff_mpa(gsi, mi)
+    if sigma3 < -cutoff:
+        return -cutoff, -cutoff, "apex"
+    if sigma3 < 0.0:
+        return ucs_mass_mpa(gsi, mi), sigma3, "envelope"
+    return sigma1_mpa(sigma3, gsi, mi), sigma3, "envelope"
 
 
 def hoek_is_keep() -> bool:
