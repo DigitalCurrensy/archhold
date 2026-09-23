@@ -64,8 +64,8 @@ A beam formula is not an arch survey.
 ## What it will not do
 
 - Run ABAQUS.
-- Run a finite-element model.
-- Treat a beam formula as an arch survey.
+- Call UDEC. That is Itasca's distinct-element program. This repository is continuum triangles, not blocks and contacts.
+- Solve the mesh again after the local plastic return.
 - Treat ok as a structural keep.
 
 ## Run
