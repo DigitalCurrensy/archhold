@@ -497,5 +497,29 @@ class FeaTests(unittest.TestCase):
         self.assertLess(inside["residual_after"], 1e-9)
 
 
+class RoofBoundaryTests(unittest.TestCase):
+    def test_dilation_and_a_different_outline_are_refused(self) -> None:
+        from archhold.fea import score_fea
+
+        with self.assertRaises(ValueError) as ctx:
+            score_fea(45.0, 10.0, 135.0, 3, 3, dilation_deg=10.0)
+        self.assertEqual(str(ctx.exception), "dilation is a person")
+        with self.assertRaises(ValueError) as ctx:
+            score_fea(45.0, 10.0, 135.0, 3, 3, outline=[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)])
+        self.assertEqual(str(ctx.exception), "not this outline")
+        self.assertEqual(f"{score_fea(45.0, 10.0, 135.0, 3, 3, outline=[(0.0, 0.0), (45.0, 0.0), (45.0, 10.0), (0.0, 10.0)])['limit']:.10g}", "0.3608335853")
+
+    def test_worked_line_verifies(self) -> None:
+        import subprocess
+        repo = Path(__file__).resolve().parents[1]
+        proc = subprocess.run(
+            [sys.executable, "-m", "archhold", "verify"],
+            cwd=repo, env={**__import__("os").environ, "PYTHONPATH": str(repo / "src")},
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "verified digest")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -238,7 +238,15 @@ def _triangles(nx: int, nz: int) -> list[tuple[int, int, int]]:
     return faces
 
 
-def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> dict[str, float | int | str]:
+def score_fea(
+    span_m: float,
+    roof_m: float,
+    depth_m: float,
+    nx: int,
+    nz: int,
+    dilation_deg: float = 0.0,
+    outline: list[tuple[float, float]] | None = None,
+) -> dict[str, float | int | str]:
     """Elastic roof strip, one Hoek-Brown equilibrium correction. Not a keep.
 
     y = 0 is the opening. y = roof is the extrados. Side nodes cannot move
@@ -255,6 +263,16 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
     _finite(span_m)
     _finite(roof_m)
     _finite(depth_m)
+    _finite(dilation_deg)
+    if dilation_deg != 0.0:
+        raise ValueError("dilation is a person")
+    if outline is not None:
+        expected = [(0.0, 0.0), (span_m, 0.0), (span_m, roof_m), (0.0, roof_m)]
+        if len(outline) != 4 or any(
+            abs(got[0] - want[0]) > 1e-9 or abs(got[1] - want[1]) > 1e-9
+            for got, want in zip(outline, expected)
+        ):
+            raise ValueError("not this outline")
     if span_m <= 0 or roof_m <= 0 or depth_m < 0:
         raise ValueError("not a mesh")
     if type(nx) is not int or type(nz) is not int or nx < 2 or nz < 2 or nx * nz > MAX_NODES:

@@ -1,0 +1,1 @@
+hoek elements=8 nodes=9 over=1 plastic=1 fail=tension max_sig1=2.10956222 back_sig1=2.10956222 min_sig3=-0.6141579063 ucs=18.80243413 cutoff=0.6126583006 pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=15.11887723 residual_after=5.911552654 iterations=5 limit=0.3608335853 e=30000 nu=0.25 digest=b5a7c9ea7dc5398b

@@ -8,7 +8,7 @@ The caller supplies the span and the roof numbers: span, thickness, tensile stre
 
 ## What it decides
 
-Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles, cuts principals that leave the Hoek-Brown envelope back onto that surface, then solves that same elastic stiffness once more. The returned stress is not the last word. That is one equilibrium correction. It is not ABAQUS and it is not UDEC.
+Thin, wide, weak, crack, missing, load, or ok. Passing the shape check is not a keep. Ok is not a structural keep. `python -m archhold verify` checks an Ed25519 signature of the worked line. The public key is in the repo. The private key is not. That signature is of the bytes. It is not a stamp. A dilation other than 0 is refused. An outline that is not this rectangle is refused. The burial load still stops at 5.911552654. The single-depth comparison is one number. The mesh command repeats that number on a grid whose edges do not carry load. The fea command solves plane-stress triangles, cuts principals that leave the Hoek-Brown envelope, then line-searches that elastic stiffness. The returned stress balances only up to the printed limit. It is not ABAQUS and it is not UDEC.
 
 ## The order inside hold()
 

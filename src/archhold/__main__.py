@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import csv
 import math
+import subprocess
 import sys
 from pathlib import Path
 
@@ -86,6 +87,26 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             print("not a mesh", file=sys.stderr)
             return 2
+        return 0
+    if args and args[0] == "verify":
+        root = Path(__file__).resolve().parents[2]
+        line = root / "examples" / "roof.line"
+        sig = root / "examples" / "roof.sig"
+        pub = root / "examples" / "roof.pub.pem"
+        if fea_line(45, 10, 135, 3, 3) + "\n" != line.read_text(encoding="utf-8"):
+            print("line moved", file=sys.stderr)
+            return 1
+        proc = subprocess.run(
+            [
+                "openssl", "pkeyutl", "-verify", "-pubin", "-inkey", str(pub),
+                "-rawin", "-in", str(line), "-sigfile", str(sig),
+            ],
+            capture_output=True,
+        )
+        if proc.returncode != 0:
+            print("not signed", file=sys.stderr)
+            return 1
+        print("verified digest")
         return 0
     if args and args[0] == "fea":
         if len(args) != 6:
