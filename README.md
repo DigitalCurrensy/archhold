@@ -1,5 +1,29 @@
 # ARCHHOLD
 
+[![check](https://github.com/DigitalCurrensy/archhold/actions/workflows/check.yml/badge.svg)](https://github.com/DigitalCurrensy/archhold/actions/workflows/check.yml)
+
+For a structural check of one small rectangular roof, from the span, the thickness, and the rock numbers you supply.
+
+The mesh is plane stress. It names the load factor the returned stress can carry. Full burial does not balance. `verify` checks an Ed25519 signature of that line. The public key is in the repository. The private key is not. The signature is of the bytes. It is not a stamp.
+
+This is not ABAQUS and it is not UDEC. Ok is not a keep.
+
+## Install
+
+```bash
+pip install -e .
+PYTHONPATH=src python -m unittest tests.test_kernel
+```
+
+## First command
+
+```bash
+PYTHONPATH=src python -m archhold examples/roof.csv
+```
+
+The rest of this file is the rule that command prints.
+
+
 The caller supplies the span and the roof numbers: span, thickness, tensile strength, and a declared crack.
 
 **Owner:** Digital Currensy Inc.
