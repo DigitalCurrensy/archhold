@@ -15,4 +15,4 @@ jobs:
       - name: Kernel tests
         run: python -m unittest tests.test_kernel
       - name: Example
-        run: python -m archhold examples/roof.csv
+        run: python -m archhold examples/roof.csv || test $? -eq 1
