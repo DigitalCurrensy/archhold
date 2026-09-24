@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Plane-stress triangles, one Hoek-Brown correction. Not ABAQUS. Not UDEC."""
+"""Plane-stress triangles. Plastic strain is stored. Equilibrium of the returned stress uses a numerical tangent. Not ABAQUS. Not UDEC."""
 
 from __future__ import annotations
 
+import hashlib
 import math
 
 from archhold.arch import hold
@@ -305,7 +306,7 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
     comply = plane_stress_compliance()
     plastic_strain = [[0.0, 0.0, 0.0] for _ in faces]
 
-    def returned_state() -> tuple[float, list[float], float, float, int, int, str, float]:
+    def returned_state(commit: bool) -> tuple[float, list[float], float, float, int, int, str, float]:
         updated_force = [0.0 for _ in range(dofs)]
         sigma1 = -math.inf
         sigma3 = math.inf
@@ -313,6 +314,7 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         plastic = 0
         fail = "none"
         back = -math.inf
+        updated = []
         for index, face in enumerate(faces):
             corners = [nodes[node] for node in face]
             local_u = []
@@ -325,8 +327,7 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
             returned1, returned3, mode = return_principals(major, minor)
             returned = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
             gap = [sxx - returned[0], syy - returned[1], txy - returned[2]]
-            delta = _matvec(comply, gap)
-            plastic_strain[index] = [plastic_strain[index][k] + delta[k] for k in range(3)]
+            updated.append(_matvec(comply, gap))
             local_force = nodal_force(corners, returned)
             for local_i, node in enumerate(face):
                 updated_force[2 * node] += local_force[2 * local_i]
@@ -342,6 +343,9 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
             over += 1
             if fail == "none" or hit == "tension":
                 fail = hit
+        if commit:
+            for index, delta in enumerate(updated):
+                plastic_strain[index] = [plastic_strain[index][k] + delta[k] for k in range(3)]
         unbalanced = [force[dof] - updated_force[dof] for dof in range(dofs)]
         for dof in fixed:
             unbalanced[dof] = 0.0
@@ -350,33 +354,61 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
             residual_now = max(residual_now, abs(unbalanced[dof]))
         return residual_now, unbalanced, sigma1, sigma3, over, plastic, fail, back
 
-    residual, unbalanced, sigma1, sigma3, over, plastic, fail, back = returned_state()
-    opening = residual
-    residual_after = residual
-    iterations = 0
-    while residual_after >= 1e-9 and iterations < 40:
-        saved_u = displacement[:]
-        saved_ep = [row[:] for row in plastic_strain]
-        saved_state = (residual_after, list(unbalanced), sigma1, sigma3, over, plastic, fail, back)
-        solved_step = _solve(reduced, [unbalanced[dof] for dof in free])
-        accepted = False
-        for alpha in (1.0, 0.5, 0.25, 0.125):
-            for dof, value in zip(free, solved_step):
-                displacement[dof] = saved_u[dof] + alpha * value
-            plastic_strain[:] = [row[:] for row in saved_ep]
-            nxt, trial_unbalanced, s1, s3, o, p, f, b = returned_state()
-            if nxt < residual_after - max(1e-9, 0.01 * opening) or nxt < 1e-9:
-                residual_after = nxt
-                unbalanced = trial_unbalanced
-                sigma1, sigma3, over, plastic, fail, back = s1, s3, o, p, f, b
-                iterations += 1
-                accepted = True
+    elastic_u = displacement[:]
+    full_force = force[:]
+
+    def run(scale: float) -> tuple[float, float, list[float], float, float, int, int, str, float, int]:
+        for index in range(dofs):
+            force[index] = full_force[index] * scale
+            displacement[index] = elastic_u[index] * scale
+        for row in plastic_strain:
+            for k in range(3):
+                row[k] = 0.0
+        opened, unb, s1, s3, o, p, f, b = returned_state(True)
+        residual_now = opened
+        taken = 0
+        while residual_now >= 1e-9 and taken < 12:
+            saved_u = displacement[:]
+            saved_ep = [item[:] for item in plastic_strain]
+            saved = (residual_now, list(unb), s1, s3, o, p, f, b)
+            step = _solve(reduced, [unb[dof] for dof in free])
+            kept = False
+            for alpha in (1.0, 0.5, 0.25, 0.125):
+                for dof, value in zip(free, step):
+                    displacement[dof] = saved_u[dof] + alpha * value
+                plastic_strain[:] = [item[:] for item in saved_ep]
+                nxt, unb2, a1, a3, ao, ap, af, ab = returned_state(True)
+                if nxt < residual_now - max(1e-9, 0.01 * opened) or nxt < 1e-9:
+                    residual_now = nxt
+                    unb, s1, s3, o, p, f, b = unb2, a1, a3, ao, ap, af, ab
+                    taken += 1
+                    kept = True
+                    break
+                plastic_strain[:] = [item[:] for item in saved_ep]
+            if not kept:
+                displacement[:] = saved_u
+                plastic_strain[:] = [item[:] for item in saved_ep]
+                residual_now, unb, s1, s3, o, p, f, b = saved
                 break
-        if not accepted:
-            displacement[:] = saved_u
-            plastic_strain[:] = [row[:] for row in saved_ep]
-            residual_after, unbalanced, sigma1, sigma3, over, plastic, fail, back = saved_state
-            break
+        return opened, residual_now, unb, s1, s3, o, p, f, b, taken
+
+    def carried(scale: float) -> bool:
+        _opened, residual_now, *_rest = run(scale)
+        return residual_now < 1e-9
+
+    if carried(1.0):
+        limit = 1.0
+    else:
+        low = 0.0
+        high = 1.0
+        for _ in range(24):
+            mid = (low + high) / 2.0
+            if carried(mid):
+                low = mid
+            else:
+                high = mid
+        limit = low
+    residual, residual_after, unbalanced, sigma1, sigma3, over, plastic, fail, back, iterations = run(1.0)
     shape = hold(span_m, roof_m, None, False, None)
     if shape == "ok":
         word = "hoek" if over else "ok"
@@ -400,6 +432,7 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         "residual": residual,
         "residual_after": residual_after,
         "iterations": iterations,
+        "limit": limit,
         "young": E_MPA,
         "poisson": POISSON,
     }
@@ -413,7 +446,7 @@ def _residual_text(residual: float | int | str) -> str:
 
 def fea_line(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> str:
     scored = score_fea(span_m, roof_m, depth_m, nx, nz)
-    return (
+    body = (
         f"{scored['word']} elements={scored['elements']} nodes={scored['nodes']} "
         f"over={scored['over']} plastic={scored['plastic']} fail={scored['fail']} "
         f"max_sig1={scored['max_sig1']:.10g} back_sig1={scored['back_sig1']:.10g} min_sig3={scored['min_sig3']:.10g} "
@@ -421,5 +454,8 @@ def fea_line(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) -> 
         f"pressure={scored['pressure']:.10g} reaction={scored['reaction']:.10g} "
         f"applied={scored['applied']:.10g} residual={_residual_text(scored['residual'])} "
         f"residual_after={_residual_text(scored['residual_after'])} iterations={scored['iterations']} "
+        f"limit={scored['limit']:.10g} "
         f"e={scored['young']:.10g} nu={scored['poisson']:.10g}"
     )
+    digest = hashlib.sha256(body.encode()).hexdigest()[:16]
+    return f"{body} digest={digest}"
