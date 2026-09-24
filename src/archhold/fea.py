@@ -283,65 +283,66 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         applied_y += force[dof]
         if dof in fixed:
             reaction_y += internal[dof] - force[dof]
-    returned_force = [0.0 for _ in range(dofs)]
-    for face in faces:
-        corners = [nodes[index] for index in face]
-        local_u = []
-        for index in face:
-            local_u.extend(displacement[2 * index : 2 * index + 2])
-        sxx, syy, txy = triangle_stress(corners, local_u)
-        major, minor = principals_compression(sxx, syy, txy)
-        returned1, returned3, mode = return_principals(major, minor)
-        stress = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
-        local_force = nodal_force(corners, stress)
-        for local_i, node in enumerate(face):
-            returned_force[2 * node] += local_force[2 * local_i]
-            returned_force[2 * node + 1] += local_force[2 * local_i + 1]
-    unbalanced = [force[dof] - returned_force[dof] for dof in range(dofs)]
-    for dof in fixed:
-        unbalanced[dof] = 0.0
-    residual = 0.0
-    for dof in free:
-        residual = max(residual, abs(unbalanced[dof]))
-    solved_step = _solve(reduced, [unbalanced[dof] for dof in free])
-    for dof, value in zip(free, solved_step):
-        displacement[dof] += value
-    updated_force = [0.0 for _ in range(dofs)]
-    sigma1 = -math.inf
-    sigma3 = math.inf
-    over = 0
-    plastic = 0
-    fail = "none"
-    back = -math.inf
-    for face in faces:
-        corners = [nodes[index] for index in face]
-        local_u = []
-        for index in face:
-            local_u.extend(displacement[2 * index : 2 * index + 2])
-        sxx, syy, txy = triangle_stress(corners, local_u)
-        major, minor = principals_compression(sxx, syy, txy)
-        returned1, returned3, mode = return_principals(major, minor)
-        stress = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
-        local_force = nodal_force(corners, stress)
-        for local_i, node in enumerate(face):
-            updated_force[2 * node] += local_force[2 * local_i]
-            updated_force[2 * node + 1] += local_force[2 * local_i + 1]
-        major, minor = principals_compression(sxx, syy, txy)
-        sigma1 = max(sigma1, major)
-        sigma3 = min(sigma3, minor)
-        hit = envelope_hit(major, minor)
-        returned1, _returned3, mode = return_principals(major, minor)
-        back = max(back, returned1)
-        if mode != "elastic":
-            plastic += 1
-        if hit == "inside":
-            continue
-        over += 1
-        if fail == "none" or hit == "tension":
-            fail = hit
-    residual_after = 0.0
-    for dof in free:
-        residual_after = max(residual_after, abs(force[dof] - updated_force[dof]))
+    def returned_state():
+        updated_force = [0.0 for _ in range(dofs)]
+        sigma1 = -math.inf
+        sigma3 = math.inf
+        over = 0
+        plastic = 0
+        fail = "none"
+        back = -math.inf
+        for face in faces:
+            corners = [nodes[index] for index in face]
+            local_u = []
+            for index in face:
+                local_u.extend(displacement[2 * index : 2 * index + 2])
+            sxx, syy, txy = triangle_stress(corners, local_u)
+            major, minor = principals_compression(sxx, syy, txy)
+            returned1, returned3, mode = return_principals(major, minor)
+            stress = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
+            local_force = nodal_force(corners, stress)
+            for local_i, node in enumerate(face):
+                updated_force[2 * node] += local_force[2 * local_i]
+                updated_force[2 * node + 1] += local_force[2 * local_i + 1]
+            sigma1 = max(sigma1, major)
+            sigma3 = min(sigma3, minor)
+            hit = envelope_hit(major, minor)
+            back = max(back, returned1)
+            if mode != "elastic":
+                plastic += 1
+            if hit == "inside":
+                continue
+            over += 1
+            if fail == "none" or hit == "tension":
+                fail = hit
+        unbalanced = [force[dof] - updated_force[dof] for dof in range(dofs)]
+        for dof in fixed:
+            unbalanced[dof] = 0.0
+        residual_now = 0.0
+        for dof in free:
+            residual_now = max(residual_now, abs(unbalanced[dof]))
+        return residual_now, unbalanced, sigma1, sigma3, over, plastic, fail, back
+
+    residual, unbalanced, sigma1, sigma3, over, plastic, fail, back = returned_state()
+    opening = residual
+    residual_after = residual
+    stress_cap = max(5.0, 5.0 * abs(sigma1)) if math.isfinite(sigma1) else 5.0
+    iterations = 0
+    while residual_after >= 1e-9 and iterations < 40:
+        saved = displacement[:]
+        saved_state = (residual_after, unbalanced, sigma1, sigma3, over, plastic, fail, back)
+        solved_step = _solve(reduced, [unbalanced[dof] for dof in free])
+        for dof, value in zip(free, solved_step):
+            displacement[dof] += value
+        nxt, unbalanced, sigma1, sigma3, over, plastic, fail, back = returned_state()
+        useful = nxt < residual_after - 0.005 * opening
+        bounded = math.isfinite(sigma1) and abs(sigma1) <= stress_cap
+        if not useful or not bounded:
+            displacement[:] = saved
+            residual_after, unbalanced, sigma1, sigma3, over, plastic, fail, back = saved_state
+            break
+        residual_after = nxt
+        iterations += 1
     shape = hold(span_m, roof_m, None, False, None)
     if shape == "ok":
         word = "hoek" if over else "ok"
@@ -364,7 +365,7 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         "applied": applied_y,
         "residual": residual,
         "residual_after": residual_after,
-        "iterations": 1,
+        "iterations": iterations,
         "young": E_MPA,
         "poisson": POISSON,
     }
