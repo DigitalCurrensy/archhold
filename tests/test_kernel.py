@@ -449,7 +449,7 @@ class FeaTests(unittest.TestCase):
         self.assertEqual(scored["word"], "hoek")
         self.assertEqual(scored["fail"], "tension")
         self.assertEqual(scored["elements"], 8)
-        self.assertEqual(scored["iterations"], 3)
+        self.assertEqual(scored["iterations"], 5)
         self.assertLess(abs(scored["reaction"] + scored["applied"]), 1e-9)
         self.assertEqual(score_fea(45.0, 1.0, 135.0, 3, 3)["word"], "thin")
 
@@ -468,10 +468,10 @@ class FeaTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(
             proc.stdout.strip(),
-            "hoek elements=8 nodes=9 over=6 plastic=6 fail=tension max_sig1=8.996541081 "
-            "back_sig1=2.116249461 min_sig3=-7.686339233 ucs=18.80243413 cutoff=0.6126583006 "
+            "hoek elements=8 nodes=9 over=1 plastic=1 fail=tension max_sig1=2.10956222 "
+            "back_sig1=2.10956222 min_sig3=-0.6141579063 ucs=18.80243413 cutoff=0.6126583006 "
             "pressure=0.67797 reaction=32.76855 applied=-32.76855 residual=15.11887723 "
-            "residual_after=14.4286067 iterations=3 e=30000 nu=0.25",
+            "residual_after=5.911552654 iterations=5 e=30000 nu=0.25",
         )
 
     def test_one_correction_is_hand_checkable(self) -> None:

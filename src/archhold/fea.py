@@ -108,6 +108,24 @@ def triangle_stiffness(
     return [[value * weight for value in row] for row in gram]
 
 
+def plane_stress_compliance(young_mpa: float = E_MPA, poisson: float = POISSON) -> list[list[float]]:
+    """Inverse of the plane-stress matrix. Engineering shear."""
+    _finite(young_mpa)
+    _finite(poisson)
+    shear = 2.0 * (1.0 + poisson) / young_mpa
+    return [
+        [1.0 / young_mpa, -poisson / young_mpa, 0.0],
+        [-poisson / young_mpa, 1.0 / young_mpa, 0.0],
+        [0.0, 0.0, shear],
+    ]
+
+
+def triangle_strain(corners: list[tuple[float, float]], displacement: list[float]) -> list[float]:
+    """Engineering strain from the same B matrix as the stiffness."""
+    _area, strain = triangle_geometry(corners)
+    return _matvec(strain, displacement)
+
+
 def triangle_stress(
     corners: list[tuple[float, float]],
     displacement: list[float],
@@ -283,7 +301,11 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         applied_y += force[dof]
         if dof in fixed:
             reaction_y += internal[dof] - force[dof]
-    def returned_state():
+    elastic = plane_stress_d()
+    comply = plane_stress_compliance()
+    plastic_strain = [[0.0, 0.0, 0.0] for _ in faces]
+
+    def returned_state() -> tuple[float, list[float], float, float, int, int, str, float]:
         updated_force = [0.0 for _ in range(dofs)]
         sigma1 = -math.inf
         sigma3 = math.inf
@@ -291,16 +313,21 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
         plastic = 0
         fail = "none"
         back = -math.inf
-        for face in faces:
-            corners = [nodes[index] for index in face]
+        for index, face in enumerate(faces):
+            corners = [nodes[node] for node in face]
             local_u = []
-            for index in face:
-                local_u.extend(displacement[2 * index : 2 * index + 2])
-            sxx, syy, txy = triangle_stress(corners, local_u)
+            for node in face:
+                local_u.extend(displacement[2 * node : 2 * node + 2])
+            strain = triangle_strain(corners, local_u)
+            elastic_strain = [strain[k] - plastic_strain[index][k] for k in range(3)]
+            sxx, syy, txy = _matvec(elastic, elastic_strain)
             major, minor = principals_compression(sxx, syy, txy)
             returned1, returned3, mode = return_principals(major, minor)
-            stress = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
-            local_force = nodal_force(corners, stress)
+            returned = corrected_stress(sxx, syy, txy, major, returned1, returned3, mode)
+            gap = [sxx - returned[0], syy - returned[1], txy - returned[2]]
+            delta = _matvec(comply, gap)
+            plastic_strain[index] = [plastic_strain[index][k] + delta[k] for k in range(3)]
+            local_force = nodal_force(corners, returned)
             for local_i, node in enumerate(face):
                 updated_force[2 * node] += local_force[2 * local_i]
                 updated_force[2 * node + 1] += local_force[2 * local_i + 1]
@@ -326,23 +353,30 @@ def score_fea(span_m: float, roof_m: float, depth_m: float, nx: int, nz: int) ->
     residual, unbalanced, sigma1, sigma3, over, plastic, fail, back = returned_state()
     opening = residual
     residual_after = residual
-    stress_cap = max(5.0, 5.0 * abs(sigma1)) if math.isfinite(sigma1) else 5.0
     iterations = 0
     while residual_after >= 1e-9 and iterations < 40:
-        saved = displacement[:]
-        saved_state = (residual_after, unbalanced, sigma1, sigma3, over, plastic, fail, back)
+        saved_u = displacement[:]
+        saved_ep = [row[:] for row in plastic_strain]
+        saved_state = (residual_after, list(unbalanced), sigma1, sigma3, over, plastic, fail, back)
         solved_step = _solve(reduced, [unbalanced[dof] for dof in free])
-        for dof, value in zip(free, solved_step):
-            displacement[dof] += value
-        nxt, unbalanced, sigma1, sigma3, over, plastic, fail, back = returned_state()
-        useful = nxt < residual_after - 0.005 * opening
-        bounded = math.isfinite(sigma1) and abs(sigma1) <= stress_cap
-        if not useful or not bounded:
-            displacement[:] = saved
+        accepted = False
+        for alpha in (1.0, 0.5, 0.25, 0.125):
+            for dof, value in zip(free, solved_step):
+                displacement[dof] = saved_u[dof] + alpha * value
+            plastic_strain[:] = [row[:] for row in saved_ep]
+            nxt, trial_unbalanced, s1, s3, o, p, f, b = returned_state()
+            if nxt < residual_after - max(1e-9, 0.01 * opening) or nxt < 1e-9:
+                residual_after = nxt
+                unbalanced = trial_unbalanced
+                sigma1, sigma3, over, plastic, fail, back = s1, s3, o, p, f, b
+                iterations += 1
+                accepted = True
+                break
+        if not accepted:
+            displacement[:] = saved_u
+            plastic_strain[:] = [row[:] for row in saved_ep]
             residual_after, unbalanced, sigma1, sigma3, over, plastic, fail, back = saved_state
             break
-        residual_after = nxt
-        iterations += 1
     shape = hold(span_m, roof_m, None, False, None)
     if shape == "ok":
         word = "hoek" if over else "ok"
