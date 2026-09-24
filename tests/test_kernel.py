@@ -519,6 +519,7 @@ class RoofBoundaryTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "verified digest")
+        self.assertEqual((repo / "examples" / "roof.sig").stat().st_size, 64)
 
 
 if __name__ == "__main__":
