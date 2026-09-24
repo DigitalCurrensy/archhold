@@ -72,8 +72,13 @@ def score_row(row: dict[str, str | None]) -> str:
     )
 
 
+from .record import finish
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    as_json = "--json" in args
+    args = [item for item in args if item != "--json"]
     if args and args[0] == "mesh":
         if len(args) != 6:
             print("usage: python -m archhold mesh SPAN ROOF DEPTH NX NZ", file=sys.stderr)
@@ -137,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 2
         strength = f"{ucs_mass_mpa():.10g}"
+        lines: list[str] = []
+        words: list[str] = []
         for row in reader:
             if all(not (value or "").strip() for value in row.values()):
                 continue
@@ -150,11 +157,12 @@ def main(argv: list[str] | None = None) -> int:
                 lith = "unset"
             else:
                 lith = _show(lithostatic_mpa(depth)) if depth >= 0 else "bad"
-            print(
+            lines.append(
                 f"{word} span={_show(span)} roof={_show(roof)} tensile={_show(tensile)} "
                 f"crack={'true' if crack else 'false'} ucs={strength} lithostatic={lith}"
             )
-    return 0
+            words.append(word)
+    return finish("archhold", "Ok is not a keep. Full burial does not balance.", lines, as_json, words)
 
 
 if __name__ == "__main__":

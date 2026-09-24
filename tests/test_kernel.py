@@ -345,7 +345,7 @@ class PrintedLineTests(unittest.TestCase):
             cwd=repo, env={**__import__("os").environ, "PYTHONPATH": str(repo / "src")},
             capture_output=True, text=True, check=False,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.returncode, 1, proc.stderr)
         self.assertEqual(
             proc.stdout.splitlines()[0],
             "ok span=45 roof=135 tensile=missing crack=false ucs=18.80243413 lithostatic=unset",

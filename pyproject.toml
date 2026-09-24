@@ -13,3 +13,6 @@ dependencies = []
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.scripts]
+archhold = "archhold.__main__:main"

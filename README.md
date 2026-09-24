@@ -23,6 +23,65 @@ PYTHONPATH=src python -m archhold examples/roof.csv
 
 The rest of this file is the rule that command prints.
 
+## Record
+
+`--json` prints one object. The process exit code is that object's `exit`. 0 is a pass word (`ok`, `pass`, `scored`, `path`). 1 is a refusal. 2 means the file could not be read. `keep` is false. `absent` is what this output does not contain: a stamp, measured basin months, and the points inside a `.laz` file.
+
+This object is not WaterML and it is not a USGS response.
+
+```json
+{
+  "absent": [
+    "stamp",
+    "measured_months",
+    "laz_points"
+  ],
+  "desk": "archhold",
+  "exit": 1,
+  "formula": "Ok is not a keep. Full burial does not balance.",
+  "keep": false,
+  "rows": [
+    {
+      "line": "ok span=45 roof=135 tensile=missing crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "ok"
+    },
+    {
+      "line": "missing span=missing roof=100 tensile=missing crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "missing"
+    },
+    {
+      "line": "missing span=45 roof=missing tensile=missing crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "missing"
+    },
+    {
+      "line": "thin span=45 roof=1 tensile=missing crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "thin"
+    },
+    {
+      "line": "wide span=5001 roof=135 tensile=missing crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "wide"
+    },
+    {
+      "line": "weak span=45 roof=135 tensile=0.5 crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "weak"
+    },
+    {
+      "line": "crack span=45 roof=135 tensile=missing crack=true ucs=18.80243413 lithostatic=unset",
+      "word": "crack"
+    },
+    {
+      "line": "ok span=5000 roof=2 tensile=1 crack=false ucs=18.80243413 lithostatic=unset",
+      "word": "ok"
+    },
+    {
+      "line": "missing span=missing roof=1 tensile=0.5 crack=true ucs=18.80243413 lithostatic=unset",
+      "word": "missing"
+    }
+  ],
+  "word": "missing"
+}
+```
+
 
 The caller supplies the span and the roof numbers: span, thickness, tensile strength, and a declared crack.
 
